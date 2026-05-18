@@ -1582,7 +1582,7 @@ document.addEventListener('drop', e => {
 });
 
 // Close help on outside click
-document.addEventListener('click', e => {
+document.addEventListener('click', e => {vercel --prod
   if (state.isHelpOpen && !helpPanel.contains(e.target) && e.target !== btnHelp) {
     state.isHelpOpen = false; helpPanel.classList.remove('open'); btnHelp.classList.remove('active');
   }

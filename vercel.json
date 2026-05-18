@@ -1,18 +1,13 @@
 {
-  "buildCommand": "echo 'Static site'",
+  "buildCommand": "echo 'Static site - no build needed'",
   "outputDirectory": ".",
-  "public": true,
-  "regions": ["iad1"],
-  "redirects": [
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "routes": [
     {
-      "source": "/",
-      "destination": "/index.html"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html",
+      "status": 200
     }
   ]
 }

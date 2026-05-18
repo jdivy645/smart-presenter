@@ -1,7 +1,11 @@
+# Python files
 app.py
 requirements.txt
+*.py
 venv/
+.venv/
 __pycache__/
 *.pyc
 .env
-.venv
+.git
+node_modules/
