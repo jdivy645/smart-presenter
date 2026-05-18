@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestureSlide — AI Presentation Controller</title>
+
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #050508;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.08);
+    --border-bright: rgba(255,255,255,0.18);
+    --accent: #00e5ff;
+    --accent2: #ff3d71;
+    --accent3: #a259ff;
+    --text: #f0f0f8;
+    --text-dim: rgba(240,240,248,0.45);
+    --glow: 0 0 20px rgba(0,229,255,0.25);
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius: 14px;
+    --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+    --panel-w: 360px;  /* assistant panel width */
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ─── WELCOME SCREEN ─── */
+  #welcome-screen {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  #welcome-screen.hidden { opacity: 0; pointer-events: none; transform: scale(1.03); }
+
+  .welcome-bg { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+  .welcome-bg::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 50%, rgba(0,229,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 80% at 80% 30%, rgba(162,89,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 60% 80%, rgba(255,61,113,0.05) 0%, transparent 60%);
+  }
+  .grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+
+  .welcome-content {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 28px;
+    padding: 40px 24px;
+    max-width: 660px; width: 100%;
+    text-align: center;
+  }
+
+  .logo-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.12em; color: var(--accent);
+    text-transform: uppercase; backdrop-filter: blur(12px);
+  }
+  .logo-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 8px var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .welcome-title {
+    font-size: clamp(38px, 8vw, 68px); font-weight: 800;
+    line-height: 1.0; letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 30%, var(--accent) 70%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .welcome-title span {
+    background: linear-gradient(135deg, var(--accent3) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  .welcome-subtitle {
+    font-family: var(--font-mono); font-size: 13px;
+    color: var(--text-dim); line-height: 1.7; max-width: 420px; font-weight: 300;
+  }
+
+  .feature-pills { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .pill {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 100px; padding: 7px 16px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px;
+    backdrop-filter: blur(8px); transition: var(--transition);
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .pill .emoji { font-size: 13px; }
+
+  .gesture-guide {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    padding: 14px; border-radius: 12px; width: 100%; max-width: 520px;
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: 6px; box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  }
+
+  .upload-zone {
+    width: 100%;
+    border: 2px dashed var(--border-bright); border-radius: var(--radius);
+    padding: 36px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    cursor: pointer; transition: var(--transition);
+    background: var(--surface); backdrop-filter: blur(12px);
+    position: relative; overflow: hidden;
+  }
+  .upload-zone::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,229,255,0.05), transparent 70%);
+    opacity: 0; transition: var(--transition);
+  }
+  .upload-zone:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .upload-zone:hover::before { opacity: 1; }
+  .upload-zone.drag-over { border-color: var(--accent); background: rgba(0,229,255,0.08); }
+
+  .upload-icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(162,89,255,0.1));
+    border: 1px solid rgba(0,229,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; transition: var(--transition);
+  }
+  .upload-zone:hover .upload-icon { transform: scale(1.1); }
+  .upload-text-primary { font-size: 16px; font-weight: 700; color: var(--text); }
+  .upload-text-secondary { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border: none; border-radius: 12px; padding: 12px 28px;
+    font-family: var(--font-display); font-size: 14px; font-weight: 700;
+    color: #000; cursor: pointer; transition: var(--transition);
+    letter-spacing: 0.02em; position: relative; overflow: hidden;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,229,255,0.35); }
+  .btn-primary:active { transform: translateY(0); }
+
+  #file-input { display: none; }
+
+  /* ─── MAIN APP ─── */
+  #app {
+    position: fixed; inset: 0; z-index: 1;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  #app.visible { opacity: 1; pointer-events: all; }
+
+  /* ─── VIDEO LAYER ─── */
+  #webcam-container {
+    position: fixed; bottom: 58px; left: 16px; z-index: 50;
+    width: 170px; height: 130px;
+    border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--border-bright);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transition: var(--transition); background: #000;
+  }
+  #webcam-container.hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+  #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+  #gesture-canvas { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+
+  /* ─── SLIDE AREA — fills everything except topbar, bottom bar, and optional right panel ─── */
+  #slide-area {
+    position: fixed;
+    top: 56px; bottom: 56px;
+    left: 0; right: 0;
+    z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+    transition: right var(--transition);
+  }
+  #app.panel-open #slide-area { right: var(--panel-w); }
+
+  #slide-canvas {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+    transition: opacity 0.3s ease;
+    transform-origin: center center;
+  }
+  #slide-img {
+    max-width: 100%; max-height: 100%;
+    position: absolute; object-fit: contain;
+    transition: opacity 0.35s ease;
+    display: none;
+    transform-origin: center center;
+  }
+
+  #blackout {
+    position: fixed; inset: 0; z-index: 20;
+    background: #000; opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #blackout.active { opacity: 1; pointer-events: all; }
+  #blackout-text {
+    font-family: var(--font-mono); font-size: 13px;
+    color: rgba(255,255,255,0.2); letter-spacing: 0.2em; text-transform: uppercase;
+  }
+
+  /* ─── LASER POINTER ─── */
+  #laser {
+    position: fixed; z-index: 60;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle, #ff3d71 0%, rgba(255,61,113,0.5) 50%, transparent 100%);
+    box-shadow: 0 0 12px rgba(255,61,113,0.8), 0 0 4px rgba(255,61,113,1);
+    pointer-events: none; display: none; transform: translate(-50%, -50%);
+  }
+
+  /* ─── TOP BAR ─── */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: rgba(5,5,8,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    transition: opacity var(--transition), transform var(--transition);
+  }
+  #topbar.hidden { opacity: 0; transform: translateY(-100%); pointer-events: none; }
+
+  .tb-logo {
+    font-size: 14px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-right: 6px; white-space: nowrap; flex-shrink: 0;
+  }
+
+  .tb-btn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 7px 12px; font-family: var(--font-mono); font-size: 11px;
+    color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    transition: var(--transition); white-space: nowrap; backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+  .tb-btn:hover { border-color: var(--border-bright); color: var(--text); background: var(--surface-hover); }
+  .tb-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.08); }
+  .tb-btn.active-red { border-color: var(--accent2); color: var(--accent2); background: rgba(255,61,113,0.08); }
+  .tb-btn .icon { font-size: 13px; }
+
+  .tb-spacer { flex: 1; }
+
+  .slide-counter {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+    padding: 7px 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; backdrop-filter: blur(12px); min-width: 70px; text-align: center;
+  }
+  .slide-counter strong { color: var(--text); }
+
+  /* ─── BOTTOM STATUS BAR ─── */
+  #status-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: rgba(5,5,8,0.92);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    transition: opacity var(--transition);
+  }
+  #status-bar.hidden { opacity: 0; pointer-events: none; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 100px; padding: 5px 12px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    backdrop-filter: blur(12px); transition: var(--transition);
+    max-width: 240px; overflow: hidden;
+  }
+  .status-pill.active-gesture { border-color: var(--accent3); color: var(--accent3); }
+  .status-pill.active-voice { border-color: var(--accent); color: var(--accent); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ─── PROGRESS BAR ─── */
+  #progress-bar {
+    position: fixed; bottom: 56px; left: 0; right: 0; z-index: 99;
+    height: 3px; background: rgba(255,255,255,0.06);
+    transition: opacity var(--transition);
+  }
+  #progress-bar.hidden { opacity: 0; }
+  #progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent));
+    transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ─── HELP PANEL ─── */
+  #help-panel {
+    position: fixed; right: 16px; top: 66px; z-index: 200;
+    width: 280px;
+    background: rgba(10,10,18,0.97); border: 1px solid var(--border-bright);
+    border-radius: var(--radius); padding: 18px;
+    backdrop-filter: blur(24px); box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    transform: translateY(-10px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+    opacity: 0; pointer-events: none;
+  }
+  #help-panel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
+
+  .help-title {
+    font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em;
+    text-transform: uppercase; font-family: var(--font-mono);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .help-section { margin-bottom: 14px; }
+  .help-section-title {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-dim); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 8px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .help-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0; font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);
+  }
+  .help-row .gesture-label {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px 7px; font-size: 11px;
+    color: var(--text); min-width: 80px; text-align: center; flex-shrink: 0;
+  }
+  .help-row .arrow { color: var(--text-dim); }
+
+  /* ─── ASSISTANT PANEL ─── */
+  #assistant-panel {
+    position: fixed; right: 0; top: 56px; bottom: 56px;
+    width: var(--panel-w); z-index: 90;
+    background: rgba(6,6,10,0.98);
+    border-left: 1px solid var(--border-bright);
+    display: flex; flex-direction: column; gap: 0;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+  #assistant-panel.open { transform: translateX(0); }
+
+  .assistant-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 14px 14px 10px; border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .assistant-title { font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--accent); }
+  .assistant-subtitle {
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    line-height: 1.5; padding: 8px 14px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .assistant-body {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--text-dim); padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  /* Input row at bottom of assistant */
+  .assistant-input-row {
+    display: flex; gap: 6px; padding: 10px;
+    border-top: 1px solid var(--border); flex-shrink: 0;
+  }
+  .assistant-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px;
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--text); outline: none;
+    transition: border-color var(--transition);
+  }
+  .assistant-input:focus { border-color: var(--accent); }
+  .assistant-send {
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border: none; border-radius: 8px; padding: 8px 14px;
+    color: #000; font-weight: 700; font-size: 12px;
+    cursor: pointer; transition: var(--transition); white-space: nowrap;
+  }
+  .assistant-send:hover { opacity: 0.85; }
+
+  .voice-log {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 10px; background: rgba(255,255,255,0.03);
+  }
+  .voice-log.user { border-color: rgba(0,229,255,0.28); }
+  .voice-log.action { border-color: rgba(162,89,255,0.3); }
+  .voice-log.system { border-color: rgba(255,255,255,0.14); }
+  .voice-log.error { border-color: rgba(255,61,113,0.4); }
+  .voice-log.typing { border-color: rgba(0,229,255,0.18); }
+  .voice-log-meta {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    font-size: 10px; color: var(--text-dim); text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 4px;
+  }
+  .voice-log-text { font-family: var(--font-display); font-size: 13px; color: var(--text); line-height: 1.45; word-break: break-word; }
+  .voice-log a { color: var(--accent); text-decoration: none; }
+  .voice-log a:hover { text-decoration: underline; }
+  .assistant-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    padding: 8px 14px; border-top: 1px solid var(--border); flex-shrink: 0;
+  }
+  .assistant-footer strong { color: var(--text); font-weight: 700; }
+
+  /* ─── TOAST ─── */
+  #toast-container {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    z-index: 300; display: flex; flex-direction: column; align-items: center;
+    gap: 8px; pointer-events: none;
+  }
+  .toast {
+    background: rgba(10,10,18,0.97); border: 1px solid var(--border-bright);
+    border-radius: 100px; padding: 9px 18px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--text);
+    backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: toast-in 0.3s cubic-bezier(0.4,0,0.2,1) forwards; white-space: nowrap;
+  }
+  .toast.out { animation: toast-out 0.3s ease forwards; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(-8px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes toast-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-8px) scale(0.96); } }
+
+  /* ─── LOADING OVERLAY ─── */
+  #loading-overlay {
+    position: fixed; inset: 0; z-index: 500; background: var(--bg);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+  }
+  #loading-overlay.show { display: flex; }
+  .loading-text { font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); }
+  .loading-bar { width: 200px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .loading-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.3s ease; }
+
+  /* ─── NO SLIDES ─── */
+  #no-slides {
+    position: fixed; inset: 0; z-index: 5;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px; background: var(--bg);
+  }
+  #no-slides.hidden { display: none; }
+  .no-slides-icon { font-size: 56px; opacity: 0.25; }
+  .no-slides-text { font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); text-align: center; line-height: 1.8; }
+
+  /* ─── CORNER LOG ─── */
+  #corner-log { position: fixed; right: 16px; bottom: 16px; z-index: 600; width: 320px; max-width: calc(100vw - 32px); background: rgba(6,6,10,0.92); border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+  #corner-log .cl-row { display:flex; gap:6px; align-items:center; padding:6px 4px; border-bottom:1px dashed rgba(255,255,255,0.02); }
+  #corner-log .cl-row:last-child { border-bottom: none; }
+  #corner-log .cl-ts { color: rgba(255,255,255,0.18); width:64px; flex-shrink:0; }
+  #corner-log .cl-kind { color: var(--accent); width:70px; flex-shrink:0; }
+  #corner-log .cl-text { color: var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* ─── VOICE LISTENING INDICATOR ─── */
+  .voice-wave {
+    display: inline-flex; align-items: center; gap: 2px; margin-left: 4px;
+  }
+  .voice-wave span {
+    display: inline-block; width: 3px; border-radius: 2px;
+    background: var(--accent); animation: wave 1.2s ease-in-out infinite;
+  }
+  .voice-wave span:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .voice-wave span:nth-child(2) { height: 10px; animation-delay: 0.15s; }
+  .voice-wave span:nth-child(3) { height: 14px; animation-delay: 0.3s; }
+  .voice-wave span:nth-child(4) { height: 10px; animation-delay: 0.45s; }
+  .voice-wave span:nth-child(5) { height: 6px; animation-delay: 0.6s; }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.4); }
+    50% { transform: scaleY(1); }
+  }
+
+  ::-webkit-scrollbar { display: none; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 700px) {
+    :root { --panel-w: 100vw; }
+    #webcam-container { width: 120px; height: 90px; bottom: 64px; left: 10px; }
+    #topbar { padding: 8px 10px; gap: 5px; }
+    .tb-btn { padding: 6px 9px; font-size: 10px; }
+    .tb-logo { font-size: 12px; }
+    #help-panel { width: calc(100vw - 32px); right: 16px; }
+    .tb-btn .tb-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── WELCOME SCREEN ─── -->
+<div id="welcome-screen">
+  <div class="welcome-bg"><div class="grid-bg"></div></div>
+  <div class="welcome-content">
+    <div class="logo-badge"><span class="dot"></span> GestureSlide v2.0 — AI Powered</div>
+    <h1 class="welcome-title">Present With<br><span>Your Hands</span></h1>
+    <p class="welcome-subtitle">Upload your slides, then control them with hand gestures and voice commands — no clicker required.</p>
+
+    <div class="feature-pills">
+      <div class="pill"><span class="emoji">✋</span> Hand Gestures</div>
+      <div class="pill"><span class="emoji">🎤</span> Voice Commands</div>
+      <div class="pill"><span class="emoji">🔴</span> Laser Pointer</div>
+      <div class="pill"><span class="emoji">📄</span> PDF + Images</div>
+      <div class="pill"><span class="emoji">🔍</span> Zoom Control</div>
+    </div>
+
+    <div id="gesture-guide" class="gesture-guide">
+      <div style="font-weight:700;margin-bottom:8px;font-size:13px;">Quick Gesture Guide</div>
+      <div style="display:flex;flex-direction:column;gap:5px;text-align:left;font-family:var(--font-mono);font-size:12px;color:var(--text-dim);">
+        <div>✌️ Two fingers — Next Slide</div>
+        <div>✋ Open palm — Previous Slide</div>
+        <div>🤏 Pinch in — Zoom In</div>
+        <div>🖐️ Pinch out — Zoom Out</div>
+        <div>✊ Fist — Laser Pointer</div>
+      </div>
+      <button class="btn-primary" id="guide-close" style="margin-top:12px;padding:8px 16px;font-size:12px;">Got it</button>
+    </div>
+
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-icon">📂</div>
+      <div class="upload-text-primary">Drop your slides here</div>
+      <div class="upload-text-secondary">PDF or images (.jpg .png .jpeg) · Multiple files supported</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn-primary" onclick="document.getElementById('file-input').click(); event.stopPropagation()">Browse Files</button>
+        <button class="btn-primary" id="btn-skip" style="background:linear-gradient(135deg,var(--accent2),var(--accent3));">Demo Mode</button>
+      </div>
+    </div>
+
+    <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png">
+  </div>
+</div>
+
+<!-- ─── LOADING OVERLAY ─── -->
+<div id="loading-overlay">
+  <div class="loading-text" id="loading-text">Processing slides…</div>
+  <div class="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+</div>
+
+<!-- ─── MAIN APP ─── -->
+<div id="app">
+
+  <!-- No slides placeholder -->
+  <div id="no-slides">
+    <div class="no-slides-icon">🖼️</div>
+    <div class="no-slides-text">No slides loaded<br>Upload a PDF or images to begin</div>
+  </div>
+
+  <!-- Slide display -->
+  <div id="slide-area">
+    <canvas id="slide-canvas"></canvas>
+    <img id="slide-img" alt="slide">
+  </div>
+
+  <!-- Blackout -->
+  <div id="blackout"><div id="blackout-text">PRESENTATION PAUSED</div></div>
+
+  <!-- Laser pointer -->
+  <div id="laser"></div>
+
+  <!-- Webcam + gesture canvas -->
+  <div id="webcam-container">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="gesture-canvas"></canvas>
+  </div>
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <span class="tb-logo">⬡ GestureSlide</span>
+    <button class="tb-btn" id="btn-upload" title="Upload new file"><span class="icon">📂</span><span class="tb-label"> Upload</span></button>
+    <button class="tb-btn active" id="btn-camera" title="Toggle camera"><span class="icon" id="cam-icon">🎥</span><span class="tb-label"> Camera</span></button>
+    <button class="tb-btn" id="btn-voice" title="Toggle voice"><span class="icon" id="voice-icon">🎤</span><span class="tb-label"> Voice</span></button>
+    <button class="tb-btn" id="btn-prev"><span class="icon">◀</span><span class="tb-label"> Prev</span></button>
+    <button class="tb-btn" id="btn-next"><span class="icon">▶</span><span class="tb-label"> Next</span></button>
+    <div class="tb-spacer"></div>
+    <div class="slide-counter"><strong id="cur-slide">0</strong> / <span id="total-slides">0</span></div>
+    <button class="tb-btn" id="btn-console" title="Toggle voice console"><span class="icon">💬</span><span class="tb-label"> Console</span></button>
+    <button class="tb-btn" id="btn-help" title="Help"><span class="icon">❓</span><span class="tb-label"> Help</span></button>
+    <input type="file" id="file-input-app" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none">
+  </div>
+
+  <!-- Progress bar -->
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+
+  <!-- Status bar -->
+  <div id="status-bar">
+    <div class="status-pill" id="gesture-status">
+      <div class="status-dot"></div>
+      <span class="status-text" id="gesture-text">Gesture: Idle</span>
+    </div>
+    <div class="status-pill" id="voice-status">
+      <div class="status-dot"></div>
+      <span class="status-text" id="voice-text">Voice: Off</span>
+    </div>
+    <div class="tb-spacer"></div>
+    <div class="status-pill" id="speech-display" style="display:none; max-width:300px;">
+      <div class="status-dot"></div>
+      <span class="status-text" id="speech-text">Listening…</span>
+    </div>
+  </div>
+
+  <!-- Help panel -->
+  <div id="help-panel">
+    <div class="help-title">📖 Controls Guide</div>
+    <div class="help-section">
+      <div class="help-section-title">Hand Gestures</div>
+      <div class="help-row"><span class="gesture-label">👉 Swipe Right</span><span class="arrow"> → </span>Next Slide</div>
+      <div class="help-row"><span class="gesture-label">👈 Swipe Left</span><span class="arrow"> → </span>Prev Slide</div>
+      <div class="help-row"><span class="gesture-label">✋ Open Palm</span><span class="arrow"> → </span>Prev Slide</div>
+      <div class="help-row"><span class="gesture-label">✊ Fist</span><span class="arrow"> → </span>Laser Pointer</div>
+      <div class="help-row"><span class="gesture-label">✌️ Two Fingers</span><span class="arrow"> → </span>Next Slide</div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">Voice Commands</div>
+      <div class="help-row"><span class="gesture-label">"next"</span><span class="arrow"> → </span>Next Slide</div>
+      <div class="help-row"><span class="gesture-label">"previous"</span><span class="arrow"> → </span>Prev Slide</div>
+      <div class="help-row"><span class="gesture-label">"pause"</span><span class="arrow"> → </span>Black Screen</div>
+      <div class="help-row"><span class="gesture-label">"resume"</span><span class="arrow"> → </span>Continue</div>
+      <div class="help-row"><span class="gesture-label">"zoom in"</span><span class="arrow"> → </span>Zoom In</div>
+      <div class="help-row"><span class="gesture-label">"zoom out"</span><span class="arrow"> → </span>Reset Zoom</div>
+      <div class="help-row"><span class="gesture-label">"go to 3"</span><span class="arrow"> → </span>Jump to Slide</div>
+      <div class="help-row"><span class="gesture-label">"first slide"</span><span class="arrow"> → </span>Slide 1</div>
+      <div class="help-row"><span class="gesture-label">"last slide"</span><span class="arrow"> → </span>Last Slide</div>
+      <div class="help-row"><span class="gesture-label">"search cats"</span><span class="arrow"> → </span>Web Search</div>
+      <div class="help-row"><span class="gesture-label">"what time"</span><span class="arrow"> → </span>Current Time</div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">Keyboard</div>
+      <div class="help-row"><span class="gesture-label">→ / Space</span><span class="arrow"> → </span>Next Slide</div>
+      <div class="help-row"><span class="gesture-label">← Arrow</span><span class="arrow"> → </span>Prev Slide</div>
+      <div class="help-row"><span class="gesture-label">F</span><span class="arrow"> → </span>Fullscreen</div>
+      <div class="help-row"><span class="gesture-label">P</span><span class="arrow"> → </span>Pause/Resume</div>
+    </div>
+  </div>
+
+  <!-- Assistant / Voice Console panel -->
+  <div id="assistant-panel">
+    <div class="assistant-header">
+      <div class="assistant-title">🎤 Voice Console</div>
+      <button class="tb-btn" id="assist-close">✕ Close</button>
+    </div>
+    <div class="assistant-subtitle">Speak naturally or type below. Commands like "next", "zoom in", "search AI news", or "what time is it".</div>
+    <div class="assistant-body" id="assistant-body">
+      <div class="voice-log system">
+        <div class="voice-log-meta"><span>Ready</span><span>System</span></div>
+        <div class="voice-log-text">Voice Console active. Say a command like "next slide", "search cats", or ask "what time is it". Type in the box below too.</div>
+      </div>
+    </div>
+    <div class="assistant-input-row">
+      <input class="assistant-input" id="assist-input" type="text" placeholder='Type a command… e.g. "search AI" or "next"' autocomplete="off">
+      <button class="assistant-send" id="assist-send">Send</button>
+    </div>
+    <div class="assistant-footer">
+      <span id="voice-console-state"><strong>Mic</strong> idle</span>
+      <span id="voice-console-count">1 log</span>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+</div>
+
+<script>
+// ─── PDF.JS SETUP ───
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ─── STATE ───
+const state = {
+  slides: [],
+  current: 0,
+  total: 0,
+  zoomLevel: 1,
+  isCameraOn: true,
+  isVoiceOn: false,
+  isPaused: false,
+  isLaserOn: false,
+  isHelpOpen: false,
+  isPanelOpen: false,
+  gestureReady: true,
+  gestureTimer: null,
+  lastGesture: '',
+  uiHideTimer: null,
+  uiVisible: true,
+  prevPinchDistance: null,
+  pinchInFrames: 0,
+  pinchOutFrames: 0,
+};
+
+// Corner log state
+const cornerLog = { entries: [], max: 6, lastGesture: '', lastGestureTs: 0 };
+
+const GESTURE_COOLDOWN = 1200;
+
+// ─── DOM REFS ───
+const $ = id => document.getElementById(id);
+const welcomeScreen   = $('welcome-screen');
+const app             = $('app');
+const fileInput       = $('file-input');
+const fileInputApp    = $('file-input-app');
+const uploadZone      = $('upload-zone');
+const slideCanvas     = $('slide-canvas');
+const slideImg        = $('slide-img');
+const slideArea       = $('slide-area');
+const blackout        = $('blackout');
+const laser           = $('laser');
+const video           = $('video');
+const gestureCanvas   = $('gesture-canvas');
+const gestureCtx      = gestureCanvas.getContext('2d');
+const webcamContainer = $('webcam-container');
+const topbar          = $('topbar');
+const statusBar       = $('status-bar');
+const progressBar     = $('progress-bar');
+const progressFill    = $('progress-fill');
+const noSlides        = $('no-slides');
+const loadingOverlay  = $('loading-overlay');
+const loadingText     = $('loading-text');
+const loadingFill     = $('loading-fill');
+const helpPanel       = $('help-panel');
+const curSlideEl      = $('cur-slide');
+const totalSlidesEl   = $('total-slides');
+const gestureStatusEl = $('gesture-status');
+const gestureTextEl   = $('gesture-text');
+const voiceStatusEl   = $('voice-status');
+const voiceTextEl     = $('voice-text');
+const speechTextEl    = $('speech-text');
+const speechDisplay   = $('speech-display');
+const btnCamera       = $('btn-camera');
+const btnVoice        = $('btn-voice');
+const btnHelp         = $('btn-help');
+const btnPrev         = $('btn-prev');
+const btnNext         = $('btn-next');
+const btnUpload       = $('btn-upload');
+const btnSkip         = $('btn-skip');
+const btnConsole      = $('btn-console');
+const gestureGuide    = $('gesture-guide');
+const btnGuideClose   = $('guide-close');
+const assistantPanel  = $('assistant-panel');
+const assistClose     = $('assist-close');
+const assistInput     = $('assist-input');
+const assistSend      = $('assist-send');
+
+// ─── TOAST ───
+function showToast(msg, duration = 2500) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  $('toast-container').appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 320); }, duration);
+}
+
+// ─── CORNER LOG (voice / gesture / camera) ───
+function addCornerLog(kind, text) {
+  const now = new Date();
+  const ts = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const entry = { kind, text, ts };
+  cornerLog.entries.unshift(entry);
+  if (cornerLog.entries.length > cornerLog.max) cornerLog.entries.pop();
+  renderCornerLog();
+}
+function renderCornerLog() {
+  let el = document.getElementById('corner-log');
+  if (!el) return;
+  el.innerHTML = cornerLog.entries.map(e => `<div class="cl-row"><span class="cl-ts">${e.ts}</span> <span class="cl-kind">[${e.kind}]</span> <span class="cl-text">${e.text}</span></div>`).join('');
+}
+
+// ─── LOADING ───
+function showLoading(text = 'Processing…') {
+  loadingText.textContent = text;
+  loadingFill.style.width = '0%';
+  loadingOverlay.classList.add('show');
+}
+function setLoadingProgress(pct) { loadingFill.style.width = pct + '%'; }
+function hideLoading() {
+  loadingFill.style.width = '100%';
+  setTimeout(() => loadingOverlay.classList.remove('show'), 300);
+}
+
+// ─── FILE HANDLING ───
+async function handleFiles(files) {
+  if (!files || files.length === 0) return;
+  const fileArr = Array.from(files);
+  const pdfs = fileArr.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  const imgs = fileArr.filter(f => f.type.startsWith('image/'));
+
+  state.slides = [];
+
+  if (pdfs.length > 0) {
+    showLoading('Rendering PDF pages…');
+    for (const pdf of pdfs) await loadPDF(pdf);
+  }
+  if (imgs.length > 0) {
+    if (pdfs.length === 0) showLoading('Loading images…');
+    imgs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    for (let i = 0; i < imgs.length; i++) {
+      setLoadingProgress(10 + (i / imgs.length) * 80);
+      state.slides.push({ type: 'image', src: URL.createObjectURL(imgs[i]) });
+    }
+  }
+
+  if (state.slides.length === 0) { showToast('⚠️ No valid slides found.'); hideLoading(); return; }
+  state.current = 0; state.total = state.slides.length;
+  setLoadingProgress(100); hideLoading(); launchApp();
+}
+
+async function loadPDF(file) {
+  return new Promise(async (resolve) => {
+    try {
+      const ab = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+      const total = pdf.numPages;
+      for (let p = 1; p <= total; p++) {
+        setLoadingProgress(10 + (p / total) * 75);
+        const page = await pdf.getPage(p);
+        const vp = page.getViewport({ scale: 2.0 });
+        const c = document.createElement('canvas');
+        c.width = vp.width; c.height = vp.height;
+        await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+        state.slides.push({ type: 'canvas', element: c, width: vp.width, height: vp.height });
+      }
+      resolve();
+    } catch (e) { console.error('PDF error:', e); showToast('⚠️ Could not read PDF.'); resolve(); }
+  });
+}
+
+// ─── DEMO MODE (no file) ───
+function loadDemo() {
+  state.slides = [];
+  const colors = ['#1a1a2e','#16213e','#0f3460','#533483','#2d4263'];
+  const titles = ['GestureSlide Demo','Hand Gesture Control','Voice Commands','Laser Pointer Mode','Thank You!'];
+  const subs   = ['Control slides with your hands','Use camera for real-time detection','Say "next", "zoom in", "search..."','Make a fist to activate laser','Try uploading your own PDF!'];
+
+  titles.forEach((title, i) => {
+    const c = document.createElement('canvas');
+    c.width = 1280; c.height = 720;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = colors[i];
+    ctx.fillRect(0, 0, 1280, 720);
+    // gradient overlay
+    const g = ctx.createLinearGradient(0, 0, 1280, 720);
+    g.addColorStop(0, 'rgba(0,229,255,0.05)');
+    g.addColorStop(1, 'rgba(162,89,255,0.05)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 1280, 720);
+    // slide number
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.font = 'bold 120px Syne, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(i + 1, 640, 400);
+    // title
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 64px Syne, sans-serif';
+    ctx.fillText(title, 640, 320);
+    // subtitle
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '28px JetBrains Mono, monospace';
+    ctx.fillText(subs[i], 640, 400);
+    state.slides.push({ type: 'canvas', element: c, width: 1280, height: 720 });
+  });
+
+  state.current = 0; state.total = state.slides.length;
+  launchApp();
+}
+
+// ─── LAUNCH APP ───
+function launchApp() {
+  welcomeScreen.classList.add('hidden');
+  app.classList.add('visible');
+  noSlides.classList.add('hidden');
+  renderSlide(0, 'none');
+  updateUI();
+  setTimeout(() => { if (!state.isVoiceOn) startVoice(); }, 300);
+}
+
+// ─── SLIDE RENDERING ───
+function renderSlide(index, direction = 'none') {
+  if (state.total === 0) return;
+  const slide = state.slides[index];
+  if (slide.type === 'image') {
+    slideCanvas.style.display = 'none';
+    slideImg.style.display = 'block';
+    if (direction !== 'none') slideImg.style.opacity = '0';
+    slideImg.src = slide.src;
+    slideImg.onload = () => { slideImg.style.opacity = '1'; };
+  } else {
+    slideImg.style.display = 'none';
+    slideCanvas.style.display = 'block';
+    const ctx = slideCanvas.getContext('2d');
+    slideCanvas.width = slide.element.width;
+    slideCanvas.height = slide.element.height;
+    if (direction !== 'none') slideCanvas.style.opacity = '0';
+    ctx.drawImage(slide.element, 0, 0);
+    requestAnimationFrame(() => { slideCanvas.style.opacity = '1'; });
+  }
+  applyZoom();
+}
+
+function applyZoom() {
+  const el = state.slides[state.current]?.type === 'image' ? slideImg : slideCanvas;
+  if (el) el.style.transform = `scale(${state.zoomLevel})`;
+}
+
+// ─── NAVIGATION ───
+function goNext() {
+  if (state.total === 0 || state.current >= state.total - 1) {
+    showToast('📄 Last slide'); speak('Last slide'); return;
+  }
+  state.current++;
+  renderSlide(state.current, 'next');
+  updateUI();
+  showToast(`➡️ Slide ${state.current + 1} / ${state.total}`);
+}
+
+function goPrev() {
+  if (state.total === 0 || state.current <= 0) {
+    showToast('📄 First slide'); speak('First slide'); return;
+  }
+  state.current--;
+  renderSlide(state.current, 'prev');
+  updateUI();
+  showToast(`⬅️ Slide ${state.current + 1} / ${state.total}`);
+}
+
+function goToSlide(n) {
+  const idx = Math.max(0, Math.min(state.total - 1, n - 1));
+  state.current = idx;
+  renderSlide(state.current, 'none');
+  updateUI();
+  showToast(`🎯 Slide ${state.current + 1}`);
+  speak(`Going to slide ${state.current + 1}`);
+}
+
+function updateUI() {
+  curSlideEl.textContent = state.total > 0 ? state.current + 1 : 0;
+  totalSlidesEl.textContent = state.total;
+  const pct = state.total > 1 ? (state.current / (state.total - 1)) * 100 : 0;
+  progressFill.style.width = pct + '%';
+}
+
+// ─── ZOOM ───
+function zoomIn() {
+  state.zoomLevel = Math.min(3, state.zoomLevel + 0.25);
+  applyZoom(); showToast(`🔍 Zoom ${Math.round(state.zoomLevel * 100)}%`);
+}
+function zoomOut() {
+  state.zoomLevel = 1; applyZoom(); showToast('🔍 Zoom Reset');
+}
+
+// ─── PAUSE ───
+function pausePresentation() {
+  state.isPaused = true; blackout.classList.add('active');
+  showToast('⏸ Paused'); speak('Presentation paused');
+}
+function resumePresentation() {
+  state.isPaused = false; blackout.classList.remove('active');
+  showToast('▶ Resumed'); speak('Presentation resumed');
+}
+function togglePause() { if (state.isPaused) resumePresentation(); else pausePresentation(); }
+
+// ─── PANEL TOGGLE ───
+function openPanel() {
+  state.isPanelOpen = true;
+  assistantPanel.classList.add('open');
+  app.classList.add('panel-open');
+  btnConsole.classList.add('active');
+}
+function closePanel() {
+  state.isPanelOpen = false;
+  assistantPanel.classList.remove('open');
+  app.classList.remove('panel-open');
+  btnConsole.classList.remove('active');
+}
+function togglePanel() { if (state.isPanelOpen) closePanel(); else openPanel(); }
+
+// ─── SPEECH SYNTHESIS ───
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.1; u.pitch = 1.0; u.volume = 0.7;
+  window.speechSynthesis.speak(u);
+}
+
+// ─── VOICE RECOGNITION ───
+let recognition = null;
+let recognitionRestarting = false;
+
+function initVoice() {
+  if (!window.isSecureContext) {
+    showToast('⚠️ Voice requires HTTPS or localhost');
+    btnVoice.disabled = true; addCornerLog('voice','Requires HTTPS or localhost'); return;
+  }
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) { showToast('⚠️ Voice not supported in this browser'); addCornerLog('voice','SpeechRecognition not supported'); return; }
+
+  recognition = new SpeechRec();
+  recognition.lang = 'en-US';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    recognitionRestarting = false;
+    voiceTextEl.innerHTML = 'Voice: Listening <span class="voice-wave"><span></span><span></span><span></span><span></span><span></span></span>';
+    voiceStatusEl.classList.add('active-voice');
+    speechTextEl.textContent = 'Listening…';
+    setVoiceConsoleState('listening');
+    addCornerLog('voice','Recognition started');
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript.toLowerCase().trim();
+      if (e.results[i].isFinal) final += (final ? ' ' : '') + t;
+      else interim += (interim ? ' ' : '') + t;
+    }
+    const display = final || interim;
+    speechTextEl.textContent = display || 'Listening…';
+    speechDisplay.style.display = 'flex';
+    if (final) { processVoiceCommand(final); }
+    if (final) addCornerLog('voice', `Heard: ${final}`);
+  };
+
+  recognition.onerror = (e) => {
+    // 'no-speech' is benign — just restart silently
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
+    console.warn('SpeechRecognition error:', e.error);
+    addCornerLog('voice', `Error: ${e.error}`);
+    if (e.error !== 'not-allowed') {
+      showToast(`⚠️ Voice error: ${e.error}`);
+    } else {
+      showToast('⚠️ Microphone permission denied');
+      stopVoice();
+    }
+  };
+
+  recognition.onend = () => {
+    voiceStatusEl.classList.remove('active-voice');
+    addCornerLog('voice','Recognition ended');
+    if (state.isVoiceOn && !recognitionRestarting) {
+      recognitionRestarting = true;
+      setTimeout(() => {
+        if (state.isVoiceOn) {
+          try { recognition.start(); } catch(err) { console.warn('Recognition restart failed:', err); }
+        }
+      }, 400);
+    } else {
+      voiceTextEl.textContent = 'Voice: Off';
+      speechDisplay.style.display = 'none';
+    }
+  };
+}
+
+// ─── NUMBER WORD MAP ───
+function wordToNumber(text) {
+  const map = { zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
+    eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20 };
+  for (const p of text.split(/\s+/)) {
+    if (map[p] !== undefined) return map[p];
+    if (/^(1st|2nd|3rd|\d+th)$/.test(p)) return parseInt(p);
+  }
+  return null;
+}
+
+function extractNumber(cmd) {
+  const m = cmd.match(/\d{1,3}/);
+  if (m) return parseInt(m[0]);
+  return wordToNumber(cmd);
+}
+
+// ─── BUILT-IN ASSISTANT (no server needed) ───
+function handleAssistantCommand(cmd) {
+  const c = cmd.toLowerCase().trim();
+
+  // Time
+  if (/\b(time|what time|current time|clock)\b/.test(c)) {
+    const now = new Date();
+    const reply = `It's ${now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}`;
+    appendVoiceLog('system', 'Assistant', reply);
+    speak(reply); showToast(`🕐 ${reply}`); return;
+  }
+
+  // Date
+  if (/\b(date|today|what day|what's today)\b/.test(c)) {
+    const reply = `Today is ${new Date().toLocaleDateString([], { weekday:'long', month:'long', day:'numeric' })}`;
+    appendVoiceLog('system', 'Assistant', reply);
+    speak(reply); return;
+  }
+
+  // Hello / greeting
+  if (/^(hello|hi|hey|good morning|good evening)\b/.test(c)) {
+    const reply = 'Hello! I can control slides, search the web, report the time, and more. Try: "next slide" or "search AI news".';
+    appendVoiceLog('system', 'Assistant', reply);
+    speak('Hello! How can I help?'); return;
+  }
+
+  // Web Search
+  const searchMatch = c.match(/\bsearch\s+(?:for\s+)?(.+)/);
+  if (searchMatch) {
+    const q = searchMatch[1].trim();
+    if (!q) { appendVoiceLog('error','Assistant','What should I search for?'); return; }
+    const url = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+    appendVoiceLog('system', 'Assistant', `Searching for "${q}"…`, { url, linkLabel: `Open results for "${q}"` });
+    speak(`Searching for ${q}`);
+    showToast(`🔍 Search: ${q}`);
+    setTimeout(() => window.open(url, '_blank'), 300);
+    return;
+  }
+
+  // Open / go to website
+  const openMatch = c.match(/\b(?:open|go to|visit)\s+(https?:\/\/\S+|\S+\.\S+)/);
+  if (openMatch) {
+    let url = openMatch[1];
+    if (!url.startsWith('http')) url = 'https://' + url;
+    appendVoiceLog('system', 'Assistant', `Opening ${url}`, { url, linkLabel: 'Open' });
+    speak(`Opening ${openMatch[1]}`);
+    window.open(url, '_blank');
+    return;
+  }
+
+  // Wikipedia
+  const wikiMatch = c.match(/\b(?:wikipedia|wiki)\s+(.+)/);
+  if (wikiMatch) {
+    const q = wikiMatch[1].trim();
+    const url = `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(q)}`;
+    appendVoiceLog('system', 'Assistant', `Opening Wikipedia for "${q}"`, { url, linkLabel: 'Open Wikipedia' });
+    speak(`Opening Wikipedia for ${q}`); window.open(url, '_blank'); return;
+  }
+
+  // YouTube
+  const ytMatch = c.match(/\b(?:youtube|play)\s+(.+)/);
+  if (ytMatch) {
+    const q = ytMatch[1].trim();
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+    appendVoiceLog('system', 'Assistant', `Searching YouTube for "${q}"`, { url, linkLabel: 'Open YouTube' });
+    speak(`Searching YouTube for ${q}`); window.open(url, '_blank'); return;
+  }
+
+  // Slide info
+  if (/\b(which slide|what slide|current slide|slide number)\b/.test(c)) {
+    const reply = state.total > 0
+      ? `You are on slide ${state.current + 1} of ${state.total}`
+      : 'No slides are loaded.';
+    appendVoiceLog('system', 'Assistant', reply); speak(reply); return;
+  }
+
+  // Slide count
+  if (/\b(how many slides|total slides|slide count)\b/.test(c)) {
+    const reply = state.total > 0 ? `There are ${state.total} slides total` : 'No slides loaded.';
+    appendVoiceLog('system', 'Assistant', reply); speak(reply); return;
+  }
+
+  // Fallback
+  const fallback = `I heard: "${cmd}". I can search, open URLs, report time/date, or control slides. Try "search ${cmd.split(' ').slice(-1)[0]}" or a slide command like "next".`;
+  appendVoiceLog('system', 'Assistant', fallback);
+  speak("I'm not sure how to help with that. Try saying search followed by your topic.");
+}
+
+// ─── VOICE COMMAND PROCESSOR ───
+function processVoiceCommand(cmd) {
+  appendVoiceLog('user', 'Heard', cmd);
+  addCornerLog('voice', `Cmd: ${cmd}`);
+  voiceStatusEl.classList.add('active-voice');
+  setTimeout(() => voiceStatusEl.classList.remove('active-voice'), 900);
+
+  const c = cmd.toLowerCase().trim();
+
+  // Slide navigation (highest priority)
+  if (/\b(first slide|go to first|go to start)\b/.test(c)) { goToSlide(1); return; }
+  if (/\b(last slide|go to last|go to end)\b/.test(c)) { goToSlide(state.total); return; }
+
+  const goMatch = c.match(/\bgo to (?:slide )?(\d{1,3})\b/);
+  if (goMatch) { goToSlide(parseInt(goMatch[1])); return; }
+
+  const slideMatch = c.match(/\bslide (\d{1,3})\b/);
+  if (slideMatch) { goToSlide(parseInt(slideMatch[1])); return; }
+
+  if (/\b(next|next slide|forward|advance|skip)\b/.test(c)) {
+    appendVoiceLog('action', 'Slide', 'Next slide'); goNext(); speak('Next'); return;
+  }
+  if (/\b(previous|prev|back|go back|previous slide|rewind)\b/.test(c)) {
+    appendVoiceLog('action', 'Slide', 'Previous slide'); goPrev(); speak('Previous'); return;
+  }
+  if (/\b(pause|blackout|blank screen)\b/.test(c)) {
+    appendVoiceLog('action', 'Slide', 'Pause'); pausePresentation(); return;
+  }
+  if (/\b(resume|continue|unpause|play)\b/.test(c)) {
+    appendVoiceLog('action', 'Slide', 'Resume'); resumePresentation(); return;
+  }
+  if (/\b(zoom in|magnify|pinch in)\b/.test(c)) {
+    appendVoiceLog('action', 'Slide', 'Zoom in'); zoomIn(); speak('Zoom in'); return;
+  }
+  if (/\b(zoom out|zoom reset|reset zoom|pinch out)\b/.test(c)) {
+    appendVoiceLog('action', 'Slide', 'Zoom out'); zoomOut(); speak('Zoom out'); return;
+  }
+  if (/\b(open console|show console|voice console)\b/.test(c)) {
+    openPanel(); appendVoiceLog('action', 'UI', 'Opened console'); return;
+  }
+
+  // Number-only: go to slide
+  const num = extractNumber(c);
+  if (num !== null && num > 0 && num <= state.total) { goToSlide(num); return; }
+
+  // Everything else → built-in assistant (no server required)
+  handleAssistantCommand(cmd);
+}
+
+// ─── VOICE CONSOLE HELPERS ───
+const voiceConsoleBody  = $('assistant-body');
+const voiceConsoleState = $('voice-console-state');
+const voiceConsoleCount = $('voice-console-count');
+
+function setVoiceConsoleState(text) {
+  if (voiceConsoleState) voiceConsoleState.innerHTML = '<strong>Mic</strong> ' + text;
+}
+
+function updateVoiceConsoleCount() {
+  if (!voiceConsoleBody || !voiceConsoleCount) return;
+  const count = voiceConsoleBody.querySelectorAll('.voice-log').length;
+  voiceConsoleCount.textContent = count + (count === 1 ? ' log' : ' logs');
+}
+
+function appendVoiceLog(kind, source, text, options = {}) {
+  if (!voiceConsoleBody || !text) return;
+  const row = document.createElement('div');
+  row.className = 'voice-log ' + kind;
+
+  const meta = document.createElement('div');
+  meta.className = 'voice-log-meta';
+  const time = document.createElement('span');
+  time.textContent = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const label = document.createElement('span');
+  label.textContent = source;
+  meta.appendChild(time); meta.appendChild(label);
+
+  const body = document.createElement('div');
+  body.className = 'voice-log-text';
+  body.textContent = text;
+
+  row.appendChild(meta); row.appendChild(body);
+
+  if (options.url) {
+    const wrap = document.createElement('div');
+    wrap.style.marginTop = '6px';
+    const link = document.createElement('a');
+    link.href = options.url; link.target = '_blank'; link.rel = 'noreferrer';
+    link.textContent = options.linkLabel || 'Open';
+    wrap.appendChild(link); row.appendChild(wrap);
+  }
+
+  voiceConsoleBody.appendChild(row);
+  while (voiceConsoleBody.children.length > 20) {
+    voiceConsoleBody.removeChild(voiceConsoleBody.firstElementChild);
+  }
+  voiceConsoleBody.scrollTop = voiceConsoleBody.scrollHeight;
+  updateVoiceConsoleCount();
+
+  // Auto-open panel on new activity
+  if (!state.isPanelOpen && (kind === 'system' || kind === 'action')) {
+    // silent — don't force open, just keep count updated
+  }
+}
+
+// ─── TEXT INPUT IN CONSOLE ───
+function submitAssistInput() {
+  const val = assistInput.value.trim();
+  if (!val) return;
+  assistInput.value = '';
+  processVoiceCommand(val);
+}
+assistSend.addEventListener('click', submitAssistInput);
+assistInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitAssistInput(); });
+
+// ─── START / STOP VOICE ───
+function startVoice() {
+  if (!recognition) initVoice();
+  if (!recognition) return;
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      stream.getTracks().forEach(t => t.stop());
+      state.isVoiceOn = true;
+      btnVoice.classList.add('active');
+      speechDisplay.style.display = 'flex';
+      try { recognition.start(); } catch(e) { console.warn('start failed', e); }
+      showToast('🎤 Voice On'); speak('Voice control enabled'); addCornerLog('voice','Voice On');
+    }).catch(() => {
+      showToast('⚠️ Microphone access denied');
+      addCornerLog('voice','Microphone access denied');
+    });
+  } else {
+    state.isVoiceOn = true;
+    btnVoice.classList.add('active');
+    speechDisplay.style.display = 'flex';
+    try { recognition.start(); showToast('🎤 Voice On'); } catch(e) { console.warn(e); }
+  }
+}
+
+function stopVoice() {
+  state.isVoiceOn = false; recognitionRestarting = false;
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  btnVoice.classList.remove('active');
+  voiceTextEl.textContent = 'Voice: Off';
+  voiceStatusEl.classList.remove('active-voice');
+  speechDisplay.style.display = 'none';
+  setVoiceConsoleState('idle');
+  showToast('🎤 Voice Off'); addCornerLog('voice','Voice Off');
+}
+
+function toggleVoice() { if (state.isVoiceOn) stopVoice(); else startVoice(); }
+
+// ─── CAMERA ───
+function initCamera() {
+  navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } })
+    .then(stream => {
+      video.srcObject = stream;
+      video.onloadedmetadata = () => { initMediaPipe(); addCornerLog('camera','Camera stream started'); };
+    })
+    .catch(err => {
+      console.warn('Camera denied:', err);
+      showToast('⚠️ Camera denied — gesture control disabled');
+      addCornerLog('camera', `Camera denied: ${err.message || err}`);
+      state.isCameraOn = false;
+      btnCamera.classList.remove('active');
+      webcamContainer.classList.add('hidden');
+    });
+}
+
+function toggleCamera() {
+  state.isCameraOn = !state.isCameraOn;
+  if (state.isCameraOn) {
+    webcamContainer.classList.remove('hidden'); btnCamera.classList.add('active');
+    showToast('🎥 Camera On');
+  } else {
+    webcamContainer.classList.add('hidden'); btnCamera.classList.remove('active');
+    showToast('🎥 Camera Off'); laser.style.display = 'none';
+  }
+}
+
+// ─── MEDIAPIPE ───
+function initMediaPipe() {
+  const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+  hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.6 });
+  hands.onResults(onHandResults);
+
+  const cam = new Camera(video, {
+    onFrame: async () => { if (state.isCameraOn) await hands.send({ image: video }); },
+    width: 640, height: 480
+  });
+  cam.start();
+  gestureCanvas.width = webcamContainer.clientWidth;
+  gestureCanvas.height = webcamContainer.clientHeight;
+}
+
+// ─── HAND RESULT PROCESSING ───
+let prevWristX = null, swipeFrames = 0, palmHoldFrames = 0;
+
+function onHandResults(results) {
+  gestureCanvas.width = webcamContainer.clientWidth;
+  gestureCanvas.height = webcamContainer.clientHeight;
+  gestureCtx.clearRect(0, 0, gestureCanvas.width, gestureCanvas.height);
+
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    prevWristX = null; swipeFrames = 0; palmHoldFrames = 0;
+    state.prevPinchDistance = null; state.pinchInFrames = 0; state.pinchOutFrames = 0;
+    setGestureStatus('Gesture: No hand', false);
+    laser.style.display = 'none';
+    return;
+  }
+
+  const lm = results.multiHandLandmarks[0];
+  drawConnectors(gestureCtx, lm, HAND_CONNECTIONS, { color: 'rgba(0,229,255,0.5)', lineWidth: 1.5 });
+  drawLandmarks(gestureCtx, lm, { color: 'rgba(0,229,255,0.9)', lineWidth: 1, radius: 3 });
+
+  const dx = lm[4].x - lm[8].x, dy = lm[4].y - lm[8].y;
+  const pinchDist = Math.sqrt(dx*dx + dy*dy);
+  let pinchDelta = state.prevPinchDistance !== null ? pinchDist - state.prevPinchDistance : null;
+  state.prevPinchDistance = pinchDist;
+
+  const gesture = detectGesture(lm);
+  // Throttle corner logging for gestures
+  const nowTs = Date.now();
+  if (gesture !== cornerLog.lastGesture || (nowTs - cornerLog.lastGestureTs) > 1200) {
+    cornerLog.lastGesture = gesture; cornerLog.lastGestureTs = nowTs;
+    addCornerLog('gesture', gesture);
+  }
+  handleGestureAction(gesture, lm, pinchDelta);
+}
+
+function detectGesture(lm) {
+  const tipIds = [4, 8, 12, 16, 20];
+  const mcpIds = [2, 5,  9, 13, 17];
+  const ext = tipIds.map((tip, i) => {
+    if (i === 0) return Math.abs(lm[tip].x - lm[mcpIds[i]].x) > 0.06;
+    return lm[tip].y < lm[mcpIds[i]].y - 0.04;
+  });
+  const cnt = ext.filter(Boolean).length;
+  const [, index, middle, ring, pinky] = ext;
+  if (cnt === 0) return 'fist';
+  if (cnt >= 4) return 'palm';
+  if (index && middle && !ring && !pinky) return 'two-fingers';
+  if (index && !middle && !ring && !pinky) return 'point';
+  return 'other';
+}
+
+function handleGestureAction(gesture, lm, pinchDelta = null) {
+  const wristX = lm[0].x;
+  const indexTip = lm[8];
+
+  // Laser (fist)
+  if (gesture === 'fist' && state.isCameraOn) {
+    state.isLaserOn = true;
+    const screenX = (1 - indexTip.x) * window.innerWidth;
+    const screenY = indexTip.y * window.innerHeight;
+    laser.style.display = 'block';
+    laser.style.left = screenX + 'px';
+    laser.style.top = screenY + 'px';
+    setGestureStatus('✊ Laser Pointer', true); return;
+  } else { state.isLaserOn = false; laser.style.display = 'none'; }
+
+  // Palm → Previous
+  if (gesture === 'palm') {
+    palmHoldFrames++;
+    if (palmHoldFrames >= 10 && state.gestureReady) { triggerGesture('palm'); palmHoldFrames = 0; }
+    setGestureStatus('✋ Open Palm', true); return;
+  } else { palmHoldFrames = 0; }
+
+  // Two fingers → Next
+  if (gesture === 'two-fingers') {
+    if (state.gestureReady && state.lastGesture !== 'two-fingers') triggerGesture('two-fingers');
+    setGestureStatus('✌️ Two Fingers', true); return;
+  }
+
+  // Pinch zoom
+  if (pinchDelta !== null) {
+    if (pinchDelta < -0.02) {
+      state.pinchInFrames++; state.pinchOutFrames = 0;
+      if (state.pinchInFrames >= 2 && state.gestureReady) { triggerGesture('pinch-in'); state.pinchInFrames = 0; }
+      setGestureStatus('🤏 Pinch In', true); return;
+    } else if (pinchDelta > 0.02) {
+      state.pinchOutFrames++; state.pinchInFrames = 0;
+      if (state.pinchOutFrames >= 2 && state.gestureReady) { triggerGesture('pinch-out'); state.pinchOutFrames = 0; }
+      setGestureStatus('🖐️ Pinch Out', true); return;
+    } else { state.pinchInFrames = 0; state.pinchOutFrames = 0; }
+  }
+
+  // Swipe detection
+  if (gesture === 'point' || gesture === 'other') {
+    if (prevWristX !== null) {
+      const delta = wristX - prevWristX;
+      if (Math.abs(delta) > 0.012) swipeFrames += delta > 0 ? 1 : -1;
+      else swipeFrames *= 0.85;
+
+      if (swipeFrames > 6 && state.gestureReady) { triggerGesture('swipe-left'); swipeFrames = 0; }
+      else if (swipeFrames < -6 && state.gestureReady) { triggerGesture('swipe-right'); swipeFrames = 0; }
+    }
+    prevWristX = wristX;
+    setGestureStatus('👆 Pointing', gesture !== 'other'); return;
+  }
+
+  prevWristX = wristX;
+  setGestureStatus('Gesture: Idle', false);
+}
+
+function triggerGesture(type) {
+  if (!state.gestureReady) return;
+  state.gestureReady = false; state.lastGesture = type;
+  clearTimeout(state.gestureTimer);
+  state.gestureTimer = setTimeout(() => { state.gestureReady = true; state.lastGesture = ''; }, GESTURE_COOLDOWN);
+
+  gestureStatusEl.classList.add('active-gesture');
+  setTimeout(() => gestureStatusEl.classList.remove('active-gesture'), 600);
+
+  switch (type) {
+    case 'swipe-right': goNext(); break;
+    case 'swipe-left':  goPrev(); break;
+    case 'palm':        goPrev(); break;
+    case 'two-fingers': goNext(); break;
+    case 'pinch-in':    zoomIn(); break;
+    case 'pinch-out':   zoomOut(); break;
+  }
+}
+
+function setGestureStatus(text, active) {
+  gestureTextEl.textContent = text;
+  if (active) gestureStatusEl.classList.add('active-gesture');
+  else gestureStatusEl.classList.remove('active-gesture');
+}
+
+// ─── KEYBOARD SHORTCUTS ───
+document.addEventListener('keydown', (e) => {
+  if (!app.classList.contains('visible')) return;
+  // Don't intercept if typing in text input
+  if (document.activeElement === assistInput) return;
+  switch (e.key) {
+    case 'ArrowRight': case ' ': e.preventDefault(); goNext(); break;
+    case 'ArrowLeft':  e.preventDefault(); goPrev(); break;
+    case 'f': case 'F': document.documentElement.requestFullscreen?.(); break;
+    case 'Escape': if (state.isPaused) resumePresentation(); break;
+    case 'p': case 'P': togglePause(); break;
+    case '+': case '=': zoomIn(); break;
+    case '-': zoomOut(); break;
+    case '?': toggleHelp(); break;
+  }
+});
+
+// ─── AUTO-HIDE UI ───
+function resetUITimer() {
+  showUI(); clearTimeout(state.uiHideTimer);
+  state.uiHideTimer = setTimeout(hideUI, 4500);
+}
+function showUI() {
+  if (state.uiVisible) return; state.uiVisible = true;
+  topbar.classList.remove('hidden'); statusBar.classList.remove('hidden'); progressBar.classList.remove('hidden');
+}
+function hideUI() {
+  if (state.isHelpOpen) return; state.uiVisible = false;
+  topbar.classList.add('hidden'); statusBar.classList.add('hidden'); progressBar.classList.add('hidden');
+}
+document.addEventListener('mousemove', resetUITimer);
+document.addEventListener('click', resetUITimer);
+document.addEventListener('touchstart', resetUITimer);
+
+// ─── HELP TOGGLE ───
+function toggleHelp() {
+  state.isHelpOpen = !state.isHelpOpen;
+  helpPanel.classList.toggle('open', state.isHelpOpen);
+  btnHelp.classList.toggle('active', state.isHelpOpen);
+}
+
+// ─── EVENT LISTENERS ───
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+fileInputApp.addEventListener('change', e => handleFiles(e.target.files));
+btnUpload.addEventListener('click', () => fileInputApp.click());
+btnCamera.addEventListener('click', toggleCamera);
+btnVoice.addEventListener('click', toggleVoice);
+btnHelp.addEventListener('click', toggleHelp);
+btnPrev.addEventListener('click', goPrev);
+btnNext.addEventListener('click', goNext);
+btnConsole.addEventListener('click', togglePanel);
+if (assistClose) assistClose.addEventListener('click', closePanel);
+if (btnSkip) btnSkip.addEventListener('click', loadDemo);
+if (btnGuideClose) btnGuideClose.addEventListener('click', () => { if (gestureGuide) gestureGuide.style.display = 'none'; });
+
+// Upload zone
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files);
+});
+
+// Global drag drop on app
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault(); if (app.classList.contains('visible')) handleFiles(e.dataTransfer.files);
+});
+
+// Close help on outside click
+document.addEventListener('click', e => {
+  if (state.isHelpOpen && !helpPanel.contains(e.target) && e.target !== btnHelp) {
+    state.isHelpOpen = false; helpPanel.classList.remove('open'); btnHelp.classList.remove('active');
+  }
+});
+
+// ─── INIT ───
+setTimeout(resetUITimer, 500);
+btnCamera.classList.add('active');
+if (navigator.mediaDevices && state.isCameraOn) {
+  try { initCamera(); } catch(e) { console.warn('Camera init failed:', e); }
+}
+
+// Insert corner log container
+const cornerLogEl = document.createElement('div');
+cornerLogEl.id = 'corner-log';
+cornerLogEl.innerHTML = '<div style="font-weight:700;margin-bottom:6px;color:var(--accent);">Activity Log</div>';
+document.body.appendChild(cornerLogEl);
+renderCornerLog();
+</script>
+</body>
+</html>
