@@ -1,9 +1,0 @@
-{
-  "name": "smart-presenter",
-  "version": "1.0.0",
-  "description": "AI-powered presentation controller with hand gestures and voice commands",
-  "private": true,
-  "scripts": {
-    "build": "echo 'Static site - no build needed'"
-  }
-}

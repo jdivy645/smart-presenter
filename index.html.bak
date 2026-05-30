@@ -17,29 +17,22 @@
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
 
   :root {
-    /* ── Premium-minimal palette: near-black + ONE restrained accent ── */
-    --bg: #0a0a0c;
-    --bg-elev: #131317;            /* solid elevated surfaces (panels, sheets) */
-    --surface: rgba(255,255,255,0.035);
-    --surface-hover: rgba(255,255,255,0.07);
-    --border: rgba(255,255,255,0.09);
-    --border-bright: rgba(255,255,255,0.16);
-    --accent: #5ad1e6;             /* soft cyan — the single accent */
-    --accent-soft: rgba(90,209,230,0.12);
-    --accent2: var(--accent);      /* repointed — retire the 3-color scheme */
-    --accent3: var(--accent);      /* repointed */
-    --laser: #ff3d6e;              /* deliberate red affordance, kept */
-    --text: #f4f4f7;
-    --text-dim: rgba(244,244,247,0.62);
-    --text-faint: rgba(244,244,247,0.34);
-    --glow: 0 0 24px rgba(90,209,230,0.16);
+    --bg: #050508;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.08);
+    --border-bright: rgba(255,255,255,0.18);
+    --accent: #00e5ff;
+    --accent2: #ff3d71;
+    --accent3: #a259ff;
+    --text: #f0f0f8;
+    --text-dim: rgba(240,240,248,0.45);
+    --glow: 0 0 20px rgba(0,229,255,0.25);
     --font-display: 'Syne', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
-    --radius: 12px;
-    --radius-sm: 8px;
+    --radius: 14px;
     --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
-    --ease-out: cubic-bezier(0.22,0.61,0.36,1);
-    --panel-w: 380px;  /* assistant panel width */
+    --panel-w: 360px;  /* assistant panel width */
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,253 +44,137 @@
     font-family: var(--font-display);
     overflow: hidden;
     user-select: none;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Keyboard accessibility — visible focus ring on interactive elements */
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: var(--radius-sm);
-  }
-  button { font-family: inherit; }
-
-  /* ─── WELCOME SCREEN — elevated product card on a "sonar" void ─── */
+  /* ─── WELCOME SCREEN ─── */
   #welcome-screen {
     position: fixed; inset: 0; z-index: 1000;
     background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    padding: 24px; overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
     transition: opacity 0.5s ease, transform 0.5s ease;
   }
   #welcome-screen.hidden { opacity: 0; pointer-events: none; transform: scale(1.03); }
 
-  /* Calm dark backdrop: radial accent + faint masked grid + breathing sonar rings + vignette */
-  .welcome-bg { position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+  .welcome-bg { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
   .welcome-bg::before {
-    content: ''; position: absolute; inset: 0;
+    content: '';
+    position: absolute; inset: 0;
     background:
-      radial-gradient(ellipse 62% 52% at 50% 16%, rgba(90,209,230,0.10) 0%, transparent 62%),
-      radial-gradient(ellipse 45% 45% at 82% 92%, rgba(90,209,230,0.045) 0%, transparent 60%);
+      radial-gradient(ellipse 80% 60% at 20% 50%, rgba(0,229,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 80% at 80% 30%, rgba(162,89,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 60% 80%, rgba(255,61,113,0.05) 0%, transparent 60%);
   }
   .grid-bg {
     position: absolute; inset: 0;
     background-image:
-      linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
-    background-size: 58px 58px;
-    -webkit-mask-image: radial-gradient(ellipse 70% 70% at center, black 22%, transparent 78%);
-    mask-image: radial-gradient(ellipse 70% 70% at center, black 22%, transparent 78%);
-  }
-
-  /* Concentric "sonar" rings — subtle atmosphere behind the card (hand sensed across the room) */
-  .atmos-rings {
-    position: absolute; top: 50%; left: 50%;
-    width: 760px; height: 760px; transform: translate(-50%,-50%);
-    display: grid; place-items: center;
-  }
-  .atmos-rings .ring {
-    position: absolute; border: 1px solid var(--border-bright); border-radius: 50%;
-    opacity: 0; box-shadow: var(--glow);
-    animation: atmos-pulse 7.5s var(--ease-out) infinite;
-  }
-  .atmos-rings .r1 { width: 220px; height: 220px; animation-delay: 0s; }
-  .atmos-rings .r2 { width: 420px; height: 420px; animation-delay: 1.9s; }
-  .atmos-rings .r3 { width: 620px; height: 620px; animation-delay: 3.8s; }
-  .atmos-rings .r4 { width: 760px; height: 760px; animation-delay: 5.7s; }
-  @keyframes atmos-pulse {
-    0%   { opacity: 0;    transform: scale(0.6);  border-color: rgba(90,209,230,0.30); }
-    20%  { opacity: 0.28; }
-    100% { opacity: 0;    transform: scale(1.18); border-color: rgba(255,255,255,0.02); }
-  }
-  .atmos-rings::before {
-    content: ''; position: absolute; width: 500px; height: 500px;
-    border-radius: 50%; border: 1px solid var(--border);
-  }
-  .vignette {
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse 95% 85% at 50% 50%, transparent 42%, rgba(4,4,6,0.55) 100%);
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
   }
 
   .welcome-content {
     position: relative; z-index: 1;
-    width: 100%; max-width: 500px; display: flex; justify-content: center;
-  }
-
-  /* The one elevated surface */
-  .entry-card {
-    width: 100%;
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 30px 30px 26px;
-    display: flex; flex-direction: column; align-items: center; gap: 22px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 28px;
+    padding: 40px 24px;
+    max-width: 660px; width: 100%;
     text-align: center;
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.04) inset,
-      0 24px 70px -20px rgba(0,0,0,0.8),
-      var(--glow);
-    animation: card-in 0.6s var(--ease-out) both;
-  }
-  @keyframes card-in {
-    from { opacity: 0; transform: translateY(14px) scale(0.985); }
-    to   { opacity: 1; transform: none; }
   }
 
-  /* Brand row */
-  .brand-row { display: flex; align-items: center; gap: 9px; width: 100%; }
-  .brand-mark { color: var(--accent); display: flex; filter: drop-shadow(0 0 6px rgba(90,209,230,0.4)); }
-  .brand-mark svg { width: 20px; height: 20px; display: block; }
-  .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; color: var(--text); }
-  .brand-badge {
-    margin-left: auto; display: flex; align-items: center; gap: 7px;
-    background: var(--accent-soft); border: 1px solid rgba(90,209,230,0.22);
-    border-radius: 100px; padding: 5px 11px;
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.13em;
-    text-transform: uppercase; color: var(--accent);
+  .logo-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.12em; color: var(--accent);
+    text-transform: uppercase; backdrop-filter: blur(12px);
   }
-  .brand-badge .dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: var(--accent); box-shadow: 0 0 7px var(--accent);
+  .logo-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 8px var(--accent);
     animation: pulse-dot 2s ease-in-out infinite;
   }
   @keyframes pulse-dot {
     0%,100% { opacity: 1; transform: scale(1); }
-    50%     { opacity: 0.45; transform: scale(0.78); }
+    50% { opacity: 0.5; transform: scale(0.8); }
   }
 
-  /* Hero */
-  .hero { display: flex; flex-direction: column; gap: 9px; }
   .welcome-title {
-    font-family: var(--font-display);
-    font-size: clamp(28px, 4.4vw, 36px); font-weight: 700;
-    line-height: 1.06; letter-spacing: -0.03em; color: var(--text);
+    font-size: clamp(38px, 8vw, 68px); font-weight: 800;
+    line-height: 1.0; letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 30%, var(--accent) 70%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
-  .welcome-title span { color: var(--accent); text-shadow: 0 0 28px rgba(90,209,230,0.30); }
-  .welcome-subtitle {
-    font-family: var(--font-mono); font-size: 12.5px; font-weight: 300;
-    color: var(--text-dim); line-height: 1.65; max-width: 360px; margin: 0 auto;
+  .welcome-title span {
+    background: linear-gradient(135deg, var(--accent3) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
 
-  /* ── Focal upload panel (lives inside the card) ── */
+  .welcome-subtitle {
+    font-family: var(--font-mono); font-size: 13px;
+    color: var(--text-dim); line-height: 1.7; max-width: 420px; font-weight: 300;
+  }
+
+  .feature-pills { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .pill {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 100px; padding: 7px 16px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px;
+    backdrop-filter: blur(8px); transition: var(--transition);
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .pill .emoji { font-size: 13px; }
+
+  .gesture-guide {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    padding: 14px; border-radius: 12px; width: 100%; max-width: 520px;
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: 6px; box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  }
+
   .upload-zone {
     width: 100%;
-    border: 1.5px dashed var(--border-bright); border-radius: var(--radius);
-    padding: 24px 20px 22px;
-    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    border: 2px dashed var(--border-bright); border-radius: var(--radius);
+    padding: 36px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
     cursor: pointer; transition: var(--transition);
-    background: var(--surface); position: relative; overflow: hidden;
+    background: var(--surface); backdrop-filter: blur(12px);
+    position: relative; overflow: hidden;
   }
   .upload-zone::before {
     content: ''; position: absolute; inset: 0;
-    background: radial-gradient(ellipse 80% 70% at 50% 30%, rgba(90,209,230,0.07), transparent 70%);
-    opacity: 0; transition: var(--transition); pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(0,229,255,0.05), transparent 70%);
+    opacity: 0; transition: var(--transition);
   }
-  .upload-zone:hover, .upload-zone:focus-visible { border-color: rgba(90,209,230,0.55); background: var(--surface-hover); }
-  .upload-zone:hover::before, .upload-zone:focus-visible::before { opacity: 1; }
-  .upload-zone.drag-over { border-color: var(--accent); border-style: solid; background: rgba(90,209,230,0.09); }
+  .upload-zone:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .upload-zone:hover::before { opacity: 1; }
+  .upload-zone.drag-over { border-color: var(--accent); background: rgba(0,229,255,0.08); }
 
-  /* Focal visual: faux slide-frame preview + glowing upload disc */
-  .upload-stage { position: relative; width: 96px; height: 70px; display: flex; align-items: center; justify-content: center; }
-  .slide-frame {
-    position: absolute; inset: 0;
-    border: 1px solid var(--border-bright); border-radius: var(--radius-sm);
-    background: rgba(255,255,255,0.02);
-    display: flex; flex-direction: column; justify-content: center; gap: 6px;
-    padding: 0 14px; opacity: 0.55; transition: var(--transition);
-  }
-  .slide-frame .sf-line { height: 3px; border-radius: 2px; background: var(--border-bright); }
-  .slide-frame .sf-line.w1 { width: 60%; background: rgba(90,209,230,0.5); }
-  .slide-frame .sf-line.w2 { width: 90%; }
-  .slide-frame .sf-line.w3 { width: 72%; }
-  .upload-zone:hover .slide-frame { opacity: 0.85; }
   .upload-icon {
-    position: relative;
-    width: 44px; height: 44px; border-radius: 50%;
-    background: var(--accent-soft); border: 1px solid rgba(90,209,230,0.28);
-    color: var(--accent);
+    width: 56px; height: 56px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(162,89,255,0.1));
+    border: 1px solid rgba(0,229,255,0.25);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: var(--glow); transition: var(--transition);
+    font-size: 24px; transition: var(--transition);
   }
-  .upload-icon svg { width: 20px; height: 20px; display: block; }
-  .upload-zone:hover .upload-icon { transform: scale(1.07); }
-  .upload-copy { display: flex; flex-direction: column; gap: 4px; }
-  .upload-text-primary { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); }
-  .upload-text-secondary { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); letter-spacing: 0.02em; }
-  .upload-zone .btn-primary { padding: 11px 28px; font-size: 13.5px; }
-
-  /* Feature chips — 4 even, single row (fixes the old 4+1 wrap) */
-  .feature-row { display: flex; gap: 8px; width: 100%; justify-content: center; flex-wrap: wrap; }
-  .chip {
-    flex: 1 1 0; min-width: 92px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 9px 6px;
-    display: flex; flex-direction: column; align-items: center; gap: 5px;
-    font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim);
-    letter-spacing: 0.04em; transition: var(--transition);
-  }
-  .chip:hover { border-color: var(--border-bright); color: var(--text); background: var(--surface-hover); }
-  .chip-ic { color: var(--accent); display: flex; }
-  .chip-ic svg { width: 15px; height: 15px; display: block; }
-
-  /* Quiet demo link (sibling of #upload-zone — no click-bubbling trap) */
-  .demo-link {
-    background: none; border: none; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 7px;
-    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.02em;
-    color: var(--text-dim); padding: 4px 6px; border-radius: var(--radius-sm);
-    transition: var(--transition);
-  }
-  .demo-link:hover { color: var(--accent); }
-  .demo-arrow { display: flex; transition: transform var(--transition); }
-  .demo-arrow svg { width: 14px; height: 14px; display: block; }
-  .demo-link:hover .demo-arrow { transform: translateX(3px); }
-
-  /* Compact viewport / mobile */
-  @media (max-width: 700px) {
-    #welcome-screen { padding: 16px; align-items: flex-start; padding-top: 28px; }
-    .atmos-rings { width: 460px; height: 460px; }
-    .atmos-rings .r4 { display: none; }
-    .atmos-rings::before { width: 320px; height: 320px; }
-    .entry-card { padding: 24px 20px 22px; gap: 18px; border-radius: 16px; }
-    .brand-badge { font-size: 9px; padding: 4px 9px; }
-    .welcome-title { font-size: 26px; }
-    .welcome-subtitle { font-size: 12px; }
-    .upload-zone { padding: 20px 16px 18px; }
-    .feature-row { gap: 6px; }
-    .chip { min-width: 0; flex: 1 1 40%; }
-  }
-
-  /* Respect reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    .entry-card { animation: none; }
-    .atmos-rings .ring { animation: none; opacity: 0.12; }
-    .atmos-rings .r1 { opacity: 0.22; }
-    .brand-badge .dot { animation: none; }
-    .demo-link:hover .demo-arrow, .upload-zone:hover .upload-icon { transform: none; }
-  }
+  .upload-zone:hover .upload-icon { transform: scale(1.1); }
+  .upload-text-primary { font-size: 16px; font-weight: 700; color: var(--text); }
+  .upload-text-secondary { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
 
   .btn-primary {
-    background: var(--accent);
-    border: 1px solid var(--accent); border-radius: var(--radius-sm); padding: 12px 26px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border: none; border-radius: 12px; padding: 12px 28px;
     font-family: var(--font-display); font-size: 14px; font-weight: 700;
-    color: #05161a; cursor: pointer; transition: var(--transition);
-    letter-spacing: 0.01em; position: relative; overflow: hidden;
+    color: #000; cursor: pointer; transition: var(--transition);
+    letter-spacing: 0.02em; position: relative; overflow: hidden;
   }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(90,209,230,0.28); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,229,255,0.35); }
   .btn-primary:active { transform: translateY(0); }
-
-  /* Secondary / ghost button — quieter affordance */
-  .btn-ghost {
-    background: var(--surface); border: 1px solid var(--border-bright);
-    border-radius: var(--radius-sm); padding: 12px 24px;
-    font-family: var(--font-display); font-size: 14px; font-weight: 600;
-    color: var(--text); cursor: pointer; transition: var(--transition);
-    letter-spacing: 0.01em;
-  }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
-  .btn-ghost:active { transform: translateY(0); }
 
   #file-input { display: none; }
 
@@ -335,24 +212,18 @@
   }
   #app.panel-open #slide-area { right: var(--panel-w); }
 
-  .slide-layer {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none;
-    transition: transform 0.42s var(--ease-out), opacity 0.42s ease;
-    will-change: transform, opacity;
-  }
-  .slide-layer.is-front { opacity: 1; }
-  .slide-media {
+  #slide-canvas {
     max-width: 100%; max-height: 100%;
     object-fit: contain;
-    display: none;                 /* painter shows the active one (canvas or img) */
+    transition: opacity 0.3s ease;
     transform-origin: center center;
-    transition: transform 0.3s var(--ease-out);   /* zoom only — separate node from layer transform */
   }
-  @media (prefers-reduced-motion: reduce) {
-    .slide-layer { transition: opacity 0.2s ease; }
-    .slide-media { transition: none; }
+  #slide-img {
+    max-width: 100%; max-height: 100%;
+    position: absolute; object-fit: contain;
+    transition: opacity 0.35s ease;
+    display: none;
+    transform-origin: center center;
   }
 
   #blackout {
@@ -371,111 +242,59 @@
   #laser {
     position: fixed; z-index: 60;
     width: 18px; height: 18px; border-radius: 50%;
-    background: radial-gradient(circle, var(--laser) 0%, rgba(255,61,110,0.5) 50%, transparent 100%);
-    box-shadow: 0 0 16px rgba(255,61,110,0.85), 0 0 5px rgba(255,61,110,1);
+    background: radial-gradient(circle, #ff3d71 0%, rgba(255,61,113,0.5) 50%, transparent 100%);
+    box-shadow: 0 0 12px rgba(255,61,113,0.8), 0 0 4px rgba(255,61,113,1);
     pointer-events: none; display: none; transform: translate(-50%, -50%);
-  }
-
-  /* ─── GESTURE CONFIRMATION HUD ─── */
-  #gesture-cue {
-    position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%,-50%) scale(0.85);
-    z-index: 70; display: flex; flex-direction: column; align-items: center; gap: 12px;
-    padding: 26px 38px; border-radius: 20px;
-    background: rgba(12,12,16,0.55); backdrop-filter: blur(10px);
-    border: 1px solid var(--border-bright); color: var(--accent);
-    opacity: 0; pointer-events: none;
-  }
-  #gesture-cue.show { animation: cuePop 0.72s var(--ease-out) forwards; }
-  #gesture-cue .cue-icon { display: flex; }
-  #gesture-cue .cue-icon svg { width: 46px; height: 46px; display: block; }
-  #gesture-cue .cue-label {
-    font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--text);
-  }
-  @keyframes cuePop {
-    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.85); }
-    16%  { opacity: 1; transform: translate(-50%,-50%) scale(1.05); }
-    70%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-    100% { opacity: 0; transform: translate(-50%,-50%) scale(1); }
-  }
-  @keyframes cueFade { 0%{opacity:0} 15%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
-
-  #gesture-hud {
-    position: absolute; inset: 0; z-index: 3;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
-    opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
-    background: radial-gradient(circle at center, rgba(0,0,0,0.35), transparent 70%);
-  }
-  #gesture-hud.show { opacity: 1; }
-  #gesture-ring { width: 62px; height: 62px; transform: rotate(-90deg); }
-  #gesture-ring .ring-bg { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 6; }
-  #gesture-ring .ring-fg {
-    fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round;
-    stroke-dasharray: 326.7; stroke-dashoffset: 326.7;
-    transition: stroke-dashoffset 0.1s linear;
-  }
-  #gesture-ring-label {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
-    color: var(--accent); text-transform: uppercase; text-shadow: 0 1px 4px #000;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    #gesture-cue.show { animation-name: cueFade; }
-    #gesture-ring .ring-fg { transition: none; }
   }
 
   /* ─── TOP BAR ─── */
   #topbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     display: flex; align-items: center; gap: 8px;
-    padding: 11px 16px;
-    background: rgba(10,10,12,0.82);
-    backdrop-filter: blur(8px);
+    padding: 10px 14px;
+    background: rgba(5,5,8,0.92);
+    backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
     transition: opacity var(--transition), transform var(--transition);
   }
   #topbar.hidden { opacity: 0; transform: translateY(-100%); pointer-events: none; }
 
   .tb-logo {
-    display: flex; align-items: center; gap: 7px;
-    font-size: 14px; font-weight: 700; letter-spacing: -0.01em;
-    color: var(--text);
-    margin-right: 8px; white-space: nowrap; flex-shrink: 0;
+    font-size: 14px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-right: 6px; white-space: nowrap; flex-shrink: 0;
   }
-  .tb-logo .mark { color: var(--accent); display: flex; }
-  .tb-logo .mark svg { width: 16px; height: 16px; display: block; }
 
   .tb-btn {
-    background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 7px 11px; font-family: var(--font-mono); font-size: 11px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 7px 12px; font-family: var(--font-mono); font-size: 11px;
     color: var(--text-dim); cursor: pointer;
-    display: flex; align-items: center; gap: 6px;
-    transition: var(--transition); white-space: nowrap;
+    display: flex; align-items: center; gap: 5px;
+    transition: var(--transition); white-space: nowrap; backdrop-filter: blur(12px);
     flex-shrink: 0;
   }
   .tb-btn:hover { border-color: var(--border-bright); color: var(--text); background: var(--surface-hover); }
-  .tb-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-  .tb-btn.active-red { border-color: var(--laser); color: var(--laser); background: rgba(255,61,110,0.10); }
-  .tb-btn .icon { display: flex; align-items: center; }
-  .tb-btn .icon svg { width: 15px; height: 15px; display: block; }
+  .tb-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.08); }
+  .tb-btn.active-red { border-color: var(--accent2); color: var(--accent2); background: rgba(255,61,113,0.08); }
+  .tb-btn .icon { font-size: 13px; }
 
   .tb-spacer { flex: 1; }
 
   .slide-counter {
     font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
     padding: 7px 12px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); min-width: 70px; text-align: center;
-    letter-spacing: 0.02em;
+    border-radius: 10px; backdrop-filter: blur(12px); min-width: 70px; text-align: center;
   }
-  .slide-counter strong { color: var(--text); font-weight: 700; }
+  .slide-counter strong { color: var(--text); }
 
   /* ─── BOTTOM STATUS BAR ─── */
   #status-bar {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
     display: flex; align-items: center; gap: 8px;
-    padding: 11px 16px;
-    background: rgba(10,10,12,0.82);
-    backdrop-filter: blur(8px);
+    padding: 10px 14px;
+    background: rgba(5,5,8,0.92);
+    backdrop-filter: blur(16px);
     border-top: 1px solid var(--border);
     transition: opacity var(--transition);
   }
@@ -493,15 +312,6 @@
   .status-pill.active-voice { border-color: var(--accent); color: var(--accent); }
   .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
   .status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .status-pill .icon { display: flex; align-items: center; flex-shrink: 0; }
-  .status-pill .icon svg { width: 13px; height: 13px; display: block; }
-  #timer-elapsed, #clock-time { font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
-  .timer-reset {
-    background: none; border: none; padding: 0; margin-left: 2px; cursor: pointer;
-    color: var(--text-faint); display: flex; align-items: center; transition: var(--transition);
-  }
-  .timer-reset:hover { color: var(--accent); }
-  .timer-reset .icon svg { width: 12px; height: 12px; }
 
   /* ─── PROGRESS BAR ─── */
   #progress-bar {
@@ -512,18 +322,17 @@
   #progress-bar.hidden { opacity: 0; }
   #progress-fill {
     height: 100%;
-    background: var(--accent);
-    box-shadow: 0 0 12px rgba(90,209,230,0.5);
-    transition: width 0.4s var(--ease-out);
+    background: linear-gradient(90deg, var(--accent3), var(--accent));
+    transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
   }
 
   /* ─── HELP PANEL ─── */
   #help-panel {
     position: fixed; right: 16px; top: 66px; z-index: 200;
     width: 280px;
-    background: var(--bg-elev); border: 1px solid var(--border-bright);
+    background: rgba(10,10,18,0.97); border: 1px solid var(--border-bright);
     border-radius: var(--radius); padding: 18px;
-    backdrop-filter: blur(12px); box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    backdrop-filter: blur(24px); box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     transform: translateY(-10px) scale(0.97);
     transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
     opacity: 0; pointer-events: none;
@@ -535,7 +344,6 @@
     text-transform: uppercase; font-family: var(--font-mono);
     margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
   }
-  .help-title .icon svg { width: 14px; height: 14px; display: block; }
   .help-section { margin-bottom: 14px; }
   .help-section-title {
     font-family: var(--font-mono); font-size: 10px;
@@ -558,7 +366,7 @@
   #assistant-panel {
     position: fixed; right: 0; top: 56px; bottom: 56px;
     width: var(--panel-w); z-index: 90;
-    background: var(--bg-elev);
+    background: rgba(6,6,10,0.98);
     border-left: 1px solid var(--border-bright);
     display: flex; flex-direction: column; gap: 0;
     transform: translateX(100%);
@@ -608,11 +416,11 @@
     border: 1px solid var(--border); border-radius: 10px;
     padding: 8px 10px; background: rgba(255,255,255,0.03);
   }
-  .voice-log.user { border-color: rgba(90,209,230,0.3); }
-  .voice-log.action { border-left: 2px solid var(--accent); border-color: rgba(90,209,230,0.22); }
+  .voice-log.user { border-color: rgba(0,229,255,0.28); }
+  .voice-log.action { border-color: rgba(162,89,255,0.3); }
   .voice-log.system { border-color: rgba(255,255,255,0.14); }
-  .voice-log.error { border-color: rgba(255,61,110,0.42); }
-  .voice-log.typing { border-color: rgba(90,209,230,0.16); }
+  .voice-log.error { border-color: rgba(255,61,113,0.4); }
+  .voice-log.typing { border-color: rgba(0,229,255,0.18); }
   .voice-log-meta {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     font-size: 10px; color: var(--text-dim); text-transform: uppercase;
@@ -627,36 +435,6 @@
     padding: 8px 14px; border-top: 1px solid var(--border); flex-shrink: 0;
   }
   .assistant-footer strong { color: var(--text); font-weight: 700; }
-
-  /* ─── FILMSTRIP / NAVIGATOR ─── */
-  #filmstrip {
-    position: fixed; left: 0; right: 0; bottom: 56px; z-index: 95;
-    background: rgba(10,10,12,0.92); backdrop-filter: blur(10px);
-    border-top: 1px solid var(--border);
-    padding: 12px 14px;
-    transform: translateY(120%); opacity: 0; pointer-events: none;
-    transition: transform 0.34s var(--ease-out), opacity 0.3s ease, right var(--transition);
-  }
-  #filmstrip.open { transform: translateY(0); opacity: 1; pointer-events: all; }
-  #app.panel-open #filmstrip { right: var(--panel-w); }
-  #filmstrip-track {
-    display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px;
-  }
-  .thumb {
-    position: relative; flex: 0 0 auto;
-    width: 132px; aspect-ratio: 16 / 9;
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    overflow: hidden; cursor: pointer; background: #000;
-    transition: var(--transition); opacity: 0.55;
-  }
-  .thumb:hover { opacity: 1; border-color: var(--border-bright); transform: translateY(-2px); }
-  .thumb.current { opacity: 1; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--glow); }
-  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .thumb .thumb-num {
-    position: absolute; left: 6px; bottom: 5px;
-    font-family: var(--font-mono); font-size: 10px; color: var(--text);
-    background: rgba(0,0,0,0.62); border-radius: 4px; padding: 1px 6px;
-  }
 
   /* ─── TOAST ─── */
   #toast-container {
@@ -693,19 +471,16 @@
     align-items: center; justify-content: center; gap: 16px; background: var(--bg);
   }
   #no-slides.hidden { display: none; }
-  .no-slides-icon { color: var(--text-faint); opacity: 0.6; }
-  .no-slides-icon svg { width: 54px; height: 54px; display: block; }
+  .no-slides-icon { font-size: 56px; opacity: 0.25; }
   .no-slides-text { font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); text-align: center; line-height: 1.8; }
 
   /* ─── CORNER LOG ─── */
-  #corner-log { position: fixed; right: 16px; bottom: 70px; z-index: 70; width: 268px; max-width: calc(100vw - 32px); background: rgba(12,12,16,0.7); border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim); backdrop-filter: blur(8px); box-shadow: 0 8px 30px rgba(0,0,0,0.5); opacity: 0.82; transition: opacity var(--transition); }
-  #corner-log:hover { opacity: 1; }
-  #corner-log .cl-head { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); padding: 2px 4px 5px; }
-  #corner-log .cl-row { display:flex; gap:8px; align-items:center; padding:3px 4px; }
-  #corner-log .cl-ts { color: var(--text-faint); width:58px; flex-shrink:0; }
-  #corner-log .cl-kind { color: var(--accent); width:62px; flex-shrink:0; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.06em; }
+  #corner-log { position: fixed; right: 16px; bottom: 16px; z-index: 600; width: 320px; max-width: calc(100vw - 32px); background: rgba(6,6,10,0.92); border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+  #corner-log .cl-row { display:flex; gap:6px; align-items:center; padding:6px 4px; border-bottom:1px dashed rgba(255,255,255,0.02); }
+  #corner-log .cl-row:last-child { border-bottom: none; }
+  #corner-log .cl-ts { color: rgba(255,255,255,0.18); width:64px; flex-shrink:0; }
+  #corner-log .cl-kind { color: var(--accent); width:70px; flex-shrink:0; }
   #corner-log .cl-text { color: var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #corner-log.hidden { opacity: 0; pointer-events: none; }
 
   /* ─── VOICE LISTENING INDICATOR ─── */
   .voice-wave {
@@ -736,12 +511,6 @@
     .tb-logo { font-size: 12px; }
     #help-panel { width: calc(100vw - 32px); right: 16px; }
     .tb-btn .tb-label { display: none; }
-    #status-bar { gap: 5px; padding: 8px 10px; }
-    #clock-pill { display: none; }
-    #corner-log { display: none; }
-    .thumb { width: 104px; }
-    #gesture-cue { padding: 20px 28px; }
-    #gesture-cue .cue-icon svg { width: 38px; height: 38px; }
   }
 </style>
 </head>
@@ -749,58 +518,40 @@
 
 <!-- ─── WELCOME SCREEN ─── -->
 <div id="welcome-screen">
-  <div class="welcome-bg" aria-hidden="true">
-    <div class="grid-bg"></div>
-    <div class="atmos-rings">
-      <span class="ring r1"></span>
-      <span class="ring r2"></span>
-      <span class="ring r3"></span>
-      <span class="ring r4"></span>
-    </div>
-    <div class="vignette"></div>
-  </div>
-
+  <div class="welcome-bg"><div class="grid-bg"></div></div>
   <div class="welcome-content">
-    <div class="entry-card">
+    <div class="logo-badge"><span class="dot"></span> GestureSlide v2.0 — AI Powered</div>
+    <h1 class="welcome-title">Present With<br><span>Your Hands</span></h1>
+    <p class="welcome-subtitle">Upload your slides, then control them with hand gestures and voice commands — no clicker required.</p>
 
-      <div class="brand-row">
-        <span class="brand-mark" data-icon="hex"></span>
-        <span class="brand-name">GestureSlide</span>
-        <span class="brand-badge"><span class="dot"></span> AI Powered</span>
+    <div class="feature-pills">
+      <div class="pill"><span class="emoji">✋</span> Hand Gestures</div>
+      <div class="pill"><span class="emoji">🎤</span> Voice Commands</div>
+      <div class="pill"><span class="emoji">🔴</span> Laser Pointer</div>
+      <div class="pill"><span class="emoji">📄</span> PDF + Images</div>
+      <div class="pill"><span class="emoji">🔍</span> Zoom Control</div>
+    </div>
+
+    <div id="gesture-guide" class="gesture-guide">
+      <div style="font-weight:700;margin-bottom:8px;font-size:13px;">Quick Gesture Guide</div>
+      <div style="display:flex;flex-direction:column;gap:5px;text-align:left;font-family:var(--font-mono);font-size:12px;color:var(--text-dim);">
+        <div>✌️ Two fingers — Next Slide</div>
+        <div>✋ Open palm — Previous Slide</div>
+        <div>🤏 Pinch in — Zoom In</div>
+        <div>🖐️ Pinch out — Zoom Out</div>
+        <div>✊ Fist — Laser Pointer</div>
       </div>
+      <button class="btn-primary" id="guide-close" style="margin-top:12px;padding:8px 16px;font-size:12px;">Got it</button>
+    </div>
 
-      <div class="hero">
-        <h1 class="welcome-title">Present with <span>your hands</span></h1>
-        <p class="welcome-subtitle">Hands-free slide control — gestures and voice, no clicker required.</p>
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-icon">📂</div>
+      <div class="upload-text-primary">Drop your slides here</div>
+      <div class="upload-text-secondary">PDF or images (.jpg .png .jpeg) · Multiple files supported</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn-primary" onclick="document.getElementById('file-input').click(); event.stopPropagation()">Browse Files</button>
+        <button class="btn-primary" id="btn-skip" style="background:linear-gradient(135deg,var(--accent2),var(--accent3));">Demo Mode</button>
       </div>
-
-      <div class="upload-zone" id="upload-zone" role="button" tabindex="0" aria-label="Upload slides or browse files">
-        <div class="upload-stage">
-          <div class="slide-frame" aria-hidden="true">
-            <span class="sf-line w1"></span>
-            <span class="sf-line w2"></span>
-            <span class="sf-line w3"></span>
-          </div>
-          <div class="upload-icon" data-icon="upload"></div>
-        </div>
-        <div class="upload-copy">
-          <div class="upload-text-primary">Drop your slides here</div>
-          <div class="upload-text-secondary">PDF · JPG · PNG &nbsp;—&nbsp; multiple files supported</div>
-        </div>
-        <button class="btn-primary" type="button" onclick="document.getElementById('file-input').click(); event.stopPropagation()">Browse Files</button>
-      </div>
-
-      <div class="feature-row">
-        <div class="chip"><span class="chip-ic" data-icon="hand"></span> Gestures</div>
-        <div class="chip"><span class="chip-ic" data-icon="mic"></span> Voice</div>
-        <div class="chip"><span class="chip-ic" data-icon="target"></span> Laser</div>
-        <div class="chip"><span class="chip-ic" data-icon="zoomin"></span> Zoom</div>
-      </div>
-
-      <button class="demo-link" id="btn-skip" type="button">
-        Just exploring? Try the demo <span class="demo-arrow" data-icon="arrowright"></span>
-      </button>
-
     </div>
 
     <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png">
@@ -818,20 +569,14 @@
 
   <!-- No slides placeholder -->
   <div id="no-slides">
-    <div class="no-slides-icon" data-icon="file"></div>
+    <div class="no-slides-icon">🖼️</div>
     <div class="no-slides-text">No slides loaded<br>Upload a PDF or images to begin</div>
   </div>
 
-  <!-- Slide display (two crossfading layers — directional transitions) -->
+  <!-- Slide display -->
   <div id="slide-area">
-    <div class="slide-layer is-front" id="layer-a">
-      <canvas class="slide-media slide-media-canvas"></canvas>
-      <img class="slide-media slide-media-img" alt="slide">
-    </div>
-    <div class="slide-layer" id="layer-b">
-      <canvas class="slide-media slide-media-canvas"></canvas>
-      <img class="slide-media slide-media-img" alt="slide">
-    </div>
+    <canvas id="slide-canvas"></canvas>
+    <img id="slide-img" alt="slide">
   </div>
 
   <!-- Blackout -->
@@ -840,38 +585,24 @@
   <!-- Laser pointer -->
   <div id="laser"></div>
 
-  <!-- Gesture action cue (big centered confirmation) -->
-  <div id="gesture-cue">
-    <span class="cue-icon" id="gesture-cue-icon"></span>
-    <span class="cue-label" id="gesture-cue-label"></span>
-  </div>
-
-  <!-- Webcam + gesture canvas + hold-to-confirm ring -->
+  <!-- Webcam + gesture canvas -->
   <div id="webcam-container">
     <video id="video" autoplay muted playsinline></video>
     <canvas id="gesture-canvas"></canvas>
-    <div id="gesture-hud">
-      <svg id="gesture-ring" viewBox="0 0 120 120" aria-hidden="true">
-        <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
-        <circle class="ring-fg" cx="60" cy="60" r="52"></circle>
-      </svg>
-      <span id="gesture-ring-label"></span>
-    </div>
   </div>
 
   <!-- Top bar -->
   <div id="topbar">
-    <span class="tb-logo"><span class="mark" data-icon="hex"></span> GestureSlide</span>
-    <button class="tb-btn" id="btn-upload" title="Upload new file" aria-label="Upload new file"><span class="icon" data-icon="upload"></span><span class="tb-label"> Upload</span></button>
-    <button class="tb-btn active" id="btn-camera" title="Toggle camera" aria-label="Toggle camera"><span class="icon" id="cam-icon" data-icon="camera"></span><span class="tb-label"> Camera</span></button>
-    <button class="tb-btn" id="btn-voice" title="Toggle voice" aria-label="Toggle voice"><span class="icon" id="voice-icon" data-icon="mic"></span><span class="tb-label"> Voice</span></button>
-    <button class="tb-btn" id="btn-prev" title="Previous slide" aria-label="Previous slide"><span class="icon" data-icon="prev"></span><span class="tb-label"> Prev</span></button>
-    <button class="tb-btn" id="btn-next" title="Next slide" aria-label="Next slide"><span class="icon" data-icon="next"></span><span class="tb-label"> Next</span></button>
+    <span class="tb-logo">⬡ GestureSlide</span>
+    <button class="tb-btn" id="btn-upload" title="Upload new file"><span class="icon">📂</span><span class="tb-label"> Upload</span></button>
+    <button class="tb-btn active" id="btn-camera" title="Toggle camera"><span class="icon" id="cam-icon">🎥</span><span class="tb-label"> Camera</span></button>
+    <button class="tb-btn" id="btn-voice" title="Toggle voice"><span class="icon" id="voice-icon">🎤</span><span class="tb-label"> Voice</span></button>
+    <button class="tb-btn" id="btn-prev"><span class="icon">◀</span><span class="tb-label"> Prev</span></button>
+    <button class="tb-btn" id="btn-next"><span class="icon">▶</span><span class="tb-label"> Next</span></button>
     <div class="tb-spacer"></div>
     <div class="slide-counter"><strong id="cur-slide">0</strong> / <span id="total-slides">0</span></div>
-    <button class="tb-btn" id="btn-strip" title="Slide navigator (G)" aria-label="Toggle slide navigator"><span class="icon" data-icon="grid"></span><span class="tb-label"> Slides</span></button>
-    <button class="tb-btn" id="btn-console" title="Toggle voice console" aria-label="Toggle voice console"><span class="icon" data-icon="console"></span><span class="tb-label"> Console</span></button>
-    <button class="tb-btn" id="btn-help" title="Help (?)" aria-label="Help"><span class="icon" data-icon="help"></span><span class="tb-label"> Help</span></button>
+    <button class="tb-btn" id="btn-console" title="Toggle voice console"><span class="icon">💬</span><span class="tb-label"> Console</span></button>
+    <button class="tb-btn" id="btn-help" title="Help"><span class="icon">❓</span><span class="tb-label"> Help</span></button>
     <input type="file" id="file-input-app" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none">
   </div>
 
@@ -893,20 +624,11 @@
       <div class="status-dot"></div>
       <span class="status-text" id="speech-text">Listening…</span>
     </div>
-    <div class="status-pill timer-pill" id="timer-pill" title="Elapsed time">
-      <span class="icon" data-icon="timer"></span>
-      <span class="status-text" id="timer-elapsed">00:00</span>
-      <button class="timer-reset" id="timer-reset" title="Reset timer" aria-label="Reset timer"><span class="icon" data-icon="reset"></span></button>
-    </div>
-    <div class="status-pill" id="clock-pill">
-      <span class="icon" data-icon="clock"></span>
-      <span class="status-text" id="clock-time">--:--</span>
-    </div>
   </div>
 
   <!-- Help panel -->
   <div id="help-panel">
-    <div class="help-title"><span class="icon" data-icon="help" style="width:14px;height:14px;display:flex"></span> Controls Guide</div>
+    <div class="help-title">📖 Controls Guide</div>
     <div class="help-section">
       <div class="help-section-title">Hand Gestures</div>
       <div class="help-row"><span class="gesture-label">👉 Swipe Right</span><span class="arrow"> → </span>Next Slide</div>
@@ -928,7 +650,6 @@
       <div class="help-row"><span class="gesture-label">"last slide"</span><span class="arrow"> → </span>Last Slide</div>
       <div class="help-row"><span class="gesture-label">"search cats"</span><span class="arrow"> → </span>Web Search</div>
       <div class="help-row"><span class="gesture-label">"what time"</span><span class="arrow"> → </span>Current Time</div>
-      <div class="help-row"><span class="gesture-label">"show slides"</span><span class="arrow"> → </span>Navigator</div>
     </div>
     <div class="help-section">
       <div class="help-section-title">Keyboard</div>
@@ -936,17 +657,14 @@
       <div class="help-row"><span class="gesture-label">← Arrow</span><span class="arrow"> → </span>Prev Slide</div>
       <div class="help-row"><span class="gesture-label">F</span><span class="arrow"> → </span>Fullscreen</div>
       <div class="help-row"><span class="gesture-label">P</span><span class="arrow"> → </span>Pause/Resume</div>
-      <div class="help-row"><span class="gesture-label">+ / −</span><span class="arrow"> → </span>Zoom In/Reset</div>
-      <div class="help-row"><span class="gesture-label">G</span><span class="arrow"> → </span>Slide Navigator</div>
-      <div class="help-row"><span class="gesture-label">T</span><span class="arrow"> → </span>Reset Timer</div>
     </div>
   </div>
 
   <!-- Assistant / Voice Console panel -->
   <div id="assistant-panel">
     <div class="assistant-header">
-      <div class="assistant-title">Voice Console</div>
-      <button class="tb-btn" id="assist-close" title="Close" aria-label="Close console"><span class="icon" data-icon="close"></span></button>
+      <div class="assistant-title">🎤 Voice Console</div>
+      <button class="tb-btn" id="assist-close">✕ Close</button>
     </div>
     <div class="assistant-subtitle">Speak naturally or type below. Commands like "next", "zoom in", "search AI news", or "what time is it".</div>
     <div class="assistant-body" id="assistant-body">
@@ -963,11 +681,6 @@
       <span id="voice-console-state"><strong>Mic</strong> idle</span>
       <span id="voice-console-count">1 log</span>
     </div>
-  </div>
-
-  <!-- Slide navigator / filmstrip -->
-  <div id="filmstrip" aria-label="Slide navigator">
-    <div id="filmstrip-track"></div>
   </div>
 
   <!-- Toast container -->
@@ -998,46 +711,12 @@ const state = {
   prevPinchDistance: null,
   pinchInFrames: 0,
   pinchOutFrames: 0,
-  isStripOpen: false,
-  thumbs: [],
-  elapsed: 0,
-  clockTimer: null,
 };
 
 // Corner log state
-const cornerLog = { entries: [], max: 5, lastGesture: '', lastGestureTs: 0 };
+const cornerLog = { entries: [], max: 6, lastGesture: '', lastGestureTs: 0 };
 
 const GESTURE_COOLDOWN = 1200;
-
-// ─── INLINE SVG ICON SET (stroke = currentColor, Feather-style) ───
-const ICON = {
-  hex:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8.66 5v10L12 22l-8.66-5V7z"/></svg>',
-  upload:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
-  camera:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
-  mic:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
-  prev:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
-  next:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
-  console:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
-  help:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-  grid:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
-  hand:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0"/><path d="M14 10V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>',
-  target:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="currentColor" stroke="none"/></svg>',
-  file:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-  zoomin:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
-  zoomout:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
-  reset:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
-  clock:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>',
-  timer:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="14" x2="12" y2="9"/><circle cx="12" cy="14" r="8"/></svg>',
-  arrowright:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
-  arrowleft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
-  close:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-};
-function renderIcons() {
-  document.querySelectorAll('[data-icon]').forEach(el => {
-    const k = el.dataset.icon;
-    if (ICON[k]) el.innerHTML = ICON[k];
-  });
-}
 
 // ─── DOM REFS ───
 const $ = id => document.getElementById(id);
@@ -1046,15 +725,9 @@ const app             = $('app');
 const fileInput       = $('file-input');
 const fileInputApp    = $('file-input-app');
 const uploadZone      = $('upload-zone');
+const slideCanvas     = $('slide-canvas');
+const slideImg        = $('slide-img');
 const slideArea       = $('slide-area');
-const reduceMotion    = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-// Two crossfading slide layers — translateX/opacity live on the layer, scale (zoom) on the media
-const layers = ['layer-a', 'layer-b'].map(id => {
-  const root = $(id);
-  return { root, canvas: root.querySelector('canvas'), img: root.querySelector('img') };
-});
-let frontIdx = 0;
-function frontLayer() { return layers[frontIdx]; }
 const blackout        = $('blackout');
 const laser           = $('laser');
 const video           = $('video');
@@ -1086,6 +759,8 @@ const btnNext         = $('btn-next');
 const btnUpload       = $('btn-upload');
 const btnSkip         = $('btn-skip');
 const btnConsole      = $('btn-console');
+const gestureGuide    = $('gesture-guide');
+const btnGuideClose   = $('guide-close');
 const assistantPanel  = $('assistant-panel');
 const assistClose     = $('assist-close');
 const assistInput     = $('assist-input');
@@ -1111,8 +786,7 @@ function addCornerLog(kind, text) {
 function renderCornerLog() {
   let el = document.getElementById('corner-log');
   if (!el) return;
-  const rows = cornerLog.entries.map(e => `<div class="cl-row"><span class="cl-ts">${e.ts}</span><span class="cl-kind">${e.kind}</span><span class="cl-text">${e.text}</span></div>`).join('');
-  el.innerHTML = `<div class="cl-head">Activity</div>${rows}`;
+  el.innerHTML = cornerLog.entries.map(e => `<div class="cl-row"><span class="cl-ts">${e.ts}</span> <span class="cl-kind">[${e.kind}]</span> <span class="cl-text">${e.text}</span></div>`).join('');
 }
 
 // ─── LOADING ───
@@ -1189,8 +863,8 @@ function loadDemo() {
     ctx.fillRect(0, 0, 1280, 720);
     // gradient overlay
     const g = ctx.createLinearGradient(0, 0, 1280, 720);
-    g.addColorStop(0, 'rgba(90,209,230,0.06)');
-    g.addColorStop(1, 'rgba(90,209,230,0.0)');
+    g.addColorStop(0, 'rgba(0,229,255,0.05)');
+    g.addColorStop(1, 'rgba(162,89,255,0.05)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, 1280, 720);
     // slide number
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
@@ -1217,77 +891,38 @@ function launchApp() {
   welcomeScreen.classList.add('hidden');
   app.classList.add('visible');
   noSlides.classList.add('hidden');
-  closeStrip(); state.thumbs = [];          // fresh deck → rebuild filmstrip lazily
   renderSlide(0, 'none');
   updateUI();
-  startPresenterClock();
   setTimeout(() => { if (!state.isVoiceOn) startVoice(); }, 300);
 }
 
-// ─── SLIDE RENDERING (two-layer crossfade) ───
-// Paint a slide's pixels into a layer (canvas or img) and apply the current zoom.
-function paintLayer(layer, slide) {
-  if (slide.type === 'image') {
-    layer.canvas.style.display = 'none';
-    layer.img.style.display = 'block';
-    layer.img.src = slide.src;
-  } else {
-    layer.img.style.display = 'none';
-    layer.canvas.style.display = 'block';
-    layer.canvas.width = slide.element.width;
-    layer.canvas.height = slide.element.height;
-    layer.canvas.getContext('2d').drawImage(slide.element, 0, 0);
-  }
-  applyZoomTo(layer);
-}
-
+// ─── SLIDE RENDERING ───
 function renderSlide(index, direction = 'none') {
   if (state.total === 0) return;
   const slide = state.slides[index];
-
-  // Simple fade — first load, direct jumps, or reduced-motion preference.
-  if (direction === 'none' || reduceMotion) {
-    const layer = frontLayer();
-    paintLayer(layer, slide);
-    layer.root.style.transition = 'none';
-    layer.root.style.transform = 'translateX(0)';
-    layer.root.classList.add('is-front');
-    layers[1 - frontIdx].root.classList.remove('is-front');
-    requestAnimationFrame(() => { layer.root.style.transition = ''; });
-    return;
+  if (slide.type === 'image') {
+    slideCanvas.style.display = 'none';
+    slideImg.style.display = 'block';
+    if (direction !== 'none') slideImg.style.opacity = '0';
+    slideImg.src = slide.src;
+    slideImg.onload = () => { slideImg.style.opacity = '1'; };
+  } else {
+    slideImg.style.display = 'none';
+    slideCanvas.style.display = 'block';
+    const ctx = slideCanvas.getContext('2d');
+    slideCanvas.width = slide.element.width;
+    slideCanvas.height = slide.element.height;
+    if (direction !== 'none') slideCanvas.style.opacity = '0';
+    ctx.drawImage(slide.element, 0, 0);
+    requestAnimationFrame(() => { slideCanvas.style.opacity = '1'; });
   }
-
-  // Directional slide: next pushes left, prev pushes right.
-  const sign = direction === 'next' ? 1 : -1;
-  const outgoing = layers[frontIdx];
-  const incoming = layers[1 - frontIdx];
-
-  paintLayer(incoming, slide);
-
-  // Stage the incoming layer offscreen with no transition, then force reflow.
-  incoming.root.style.transition = 'none';
-  incoming.root.style.transform = `translateX(${sign * 6}%)`;
-  incoming.root.classList.remove('is-front');   // opacity 0 start
-  void incoming.root.offsetWidth;
-
-  // Animate both layers in opposite directions.
-  incoming.root.style.transition = '';
-  incoming.root.classList.add('is-front');       // opacity -> 1
-  incoming.root.style.transform = 'translateX(0)';
-  outgoing.root.style.transform = `translateX(${-sign * 6}%)`;
-  outgoing.root.classList.remove('is-front');    // opacity -> 0
-
-  frontIdx = 1 - frontIdx;
+  applyZoom();
 }
 
-// Apply current zoom to a layer's active media (scale lives on the media, never the layer).
-function applyZoomTo(layer) {
-  const active = layer.img.style.display === 'block' ? layer.img : layer.canvas;
-  const inactive = active === layer.img ? layer.canvas : layer.img;
-  active.style.transform = `scale(${state.zoomLevel})`;
-  inactive.style.transform = '';
+function applyZoom() {
+  const el = state.slides[state.current]?.type === 'image' ? slideImg : slideCanvas;
+  if (el) el.style.transform = `scale(${state.zoomLevel})`;
 }
-function applyZoom() { applyZoomTo(frontLayer()); }
 
 // ─── NAVIGATION ───
 function goNext() {
@@ -1324,34 +959,6 @@ function updateUI() {
   totalSlidesEl.textContent = state.total;
   const pct = state.total > 1 ? (state.current / (state.total - 1)) * 100 : 0;
   progressFill.style.width = pct + '%';
-  highlightStrip();
-}
-
-// ─── PRESENTER CLOCK + TIMER ───
-function fmtElapsed(s) {
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  const mm = String(m).padStart(2, '0'), ss = String(sec).padStart(2, '0');
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-function paintClock() {
-  $('clock-time').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-function tickClock() {
-  state.elapsed++;
-  $('timer-elapsed').textContent = fmtElapsed(state.elapsed);
-  paintClock();
-}
-function startPresenterClock() {
-  clearInterval(state.clockTimer);     // never double-start on re-upload
-  state.elapsed = 0;
-  $('timer-elapsed').textContent = '00:00';
-  paintClock();
-  state.clockTimer = setInterval(tickClock, 1000);
-}
-function resetTimer() {
-  state.elapsed = 0;
-  $('timer-elapsed').textContent = '00:00';
-  showToast('Timer reset');
 }
 
 // ─── ZOOM ───
@@ -1388,59 +995,6 @@ function closePanel() {
   btnConsole.classList.remove('active');
 }
 function togglePanel() { if (state.isPanelOpen) closePanel(); else openPanel(); }
-
-// ─── FILMSTRIP / SLIDE NAVIGATOR ───
-const filmstrip      = $('filmstrip');
-const filmstripTrack = $('filmstrip-track');
-
-// Lightweight thumbnail per slide (cached in state.thumbs).
-function buildThumb(slide) {
-  if (slide.type === 'image') return slide.src;
-  const src = slide.element;                       // full-res PDF/demo canvas
-  const w = 240, h = Math.max(1, Math.round(w * (src.height / src.width)));
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  c.getContext('2d').drawImage(src, 0, 0, w, h);
-  return c.toDataURL('image/jpeg', 0.7);
-}
-
-function buildFilmstrip() {
-  filmstripTrack.innerHTML = '';
-  state.slides.forEach((slide, i) => {
-    if (!state.thumbs[i]) state.thumbs[i] = buildThumb(slide);
-    const cell = document.createElement('div');
-    cell.className = 'thumb' + (i === state.current ? ' current' : '');
-    cell.dataset.index = i;
-    cell.innerHTML = `<img src="${state.thumbs[i]}" alt="Slide ${i + 1}"><span class="thumb-num">${i + 1}</span>`;
-    cell.addEventListener('click', () => { goToSlide(i + 1); closeStrip(); });
-    filmstripTrack.appendChild(cell);
-  });
-}
-
-function highlightStrip() {
-  if (!filmstripTrack) return;
-  const cells = filmstripTrack.children;
-  for (let i = 0; i < cells.length; i++) {
-    const isCur = (+cells[i].dataset.index === state.current);
-    cells[i].classList.toggle('current', isCur);
-    if (isCur && state.isStripOpen) cells[i].scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-  }
-}
-
-function openStrip() {
-  if (state.total === 0) { showToast('No slides loaded'); return; }
-  if (filmstripTrack.children.length !== state.total) buildFilmstrip();
-  state.isStripOpen = true;
-  filmstrip.classList.add('open');
-  $('btn-strip').classList.add('active');
-  highlightStrip();
-}
-function closeStrip() {
-  state.isStripOpen = false;
-  if (filmstrip) filmstrip.classList.remove('open');
-  const b = $('btn-strip'); if (b) b.classList.remove('active');
-}
-function toggleStrip() { if (state.isStripOpen) closeStrip(); else openStrip(); }
 
 // ─── SPEECH SYNTHESIS ───
 function speak(text) {
@@ -1667,12 +1221,6 @@ function processVoiceCommand(cmd) {
   if (/\b(open console|show console|voice console)\b/.test(c)) {
     openPanel(); appendVoiceLog('action', 'UI', 'Opened console'); return;
   }
-  if (/\b(show slides|slide navigator|navigator|thumbnails|overview)\b/.test(c)) {
-    openStrip(); appendVoiceLog('action', 'UI', 'Opened slide navigator'); return;
-  }
-  if (/\b(hide slides|close navigator|close slides|hide navigator)\b/.test(c)) {
-    closeStrip(); appendVoiceLog('action', 'UI', 'Closed slide navigator'); return;
-  }
 
   // Number-only: go to slide
   const num = extractNumber(c);
@@ -1829,67 +1377,6 @@ function initMediaPipe() {
   gestureCanvas.height = webcamContainer.clientHeight;
 }
 
-// ─── GESTURE CONFIRMATION HUD ───
-const gestureCue       = $('gesture-cue');
-const gestureCueIcon   = $('gesture-cue-icon');
-const gestureCueLabel  = $('gesture-cue-label');
-const gestureHud       = $('gesture-hud');
-const gestureRingFg    = document.querySelector('#gesture-ring .ring-fg');
-const gestureRingLabel = $('gesture-ring-label');
-const RING_C = 326.7;   // 2πr, r = 52
-
-const CUE = {
-  'swipe-right': { icon: 'arrowright', label: 'Next' },
-  'two-fingers': { icon: 'arrowright', label: 'Next' },
-  'swipe-left':  { icon: 'arrowleft',  label: 'Previous' },
-  'palm':        { icon: 'arrowleft',  label: 'Previous' },
-  'pinch-in':    { icon: 'zoomin',     label: 'Zoom In' },
-  'pinch-out':   { icon: 'zoomout',    label: 'Reset Zoom' },
-  'laser':       { icon: 'target',     label: 'Laser On' },
-};
-
-let cueTimer = null;
-function showGestureCue(type) {
-  const cfg = CUE[type];
-  if (!cfg || !gestureCue) return;
-  gestureCueIcon.innerHTML = ICON[cfg.icon] || '';
-  gestureCueLabel.textContent = cfg.label;
-  gestureCue.classList.remove('show');
-  void gestureCue.offsetWidth;        // restart the animation
-  gestureCue.classList.add('show');
-  clearTimeout(cueTimer);
-  cueTimer = setTimeout(() => gestureCue.classList.remove('show'), 760);
-}
-
-let ringHideTimer = null;
-function setGestureRing(progress, label) {
-  if (!gestureHud) return;
-  const p = Math.max(0, Math.min(1, progress));
-  gestureRingFg.style.strokeDashoffset = (RING_C * (1 - p)).toFixed(1);
-  gestureRingLabel.textContent = label || '';
-  gestureHud.classList.add('show');
-  clearTimeout(ringHideTimer);
-  ringHideTimer = setTimeout(() => gestureHud.classList.remove('show'), 450);
-}
-function hideGestureRing() { if (gestureHud) gestureHud.classList.remove('show'); }
-
-// Read frame counters AFTER handleGestureAction has processed the current frame.
-function updateGestureRing(gesture) {
-  if (gesture === 'palm') {
-    setGestureRing(palmHoldFrames / 10, 'Prev');
-  } else if (gesture === 'two-fingers') {
-    setGestureRing(1, 'Next');
-  } else if (state.pinchInFrames > 0) {
-    setGestureRing(state.pinchInFrames / 2, 'Zoom +');
-  } else if (state.pinchOutFrames > 0) {
-    setGestureRing(state.pinchOutFrames / 2, 'Zoom −');
-  } else if (Math.abs(swipeFrames) > 0.5 && (gesture === 'point' || gesture === 'other')) {
-    setGestureRing(Math.abs(swipeFrames) / 6, swipeFrames < 0 ? 'Next' : 'Prev');
-  } else {
-    hideGestureRing();
-  }
-}
-
 // ─── HAND RESULT PROCESSING ───
 let prevWristX = null, swipeFrames = 0, palmHoldFrames = 0;
 
@@ -1903,13 +1390,12 @@ function onHandResults(results) {
     state.prevPinchDistance = null; state.pinchInFrames = 0; state.pinchOutFrames = 0;
     setGestureStatus('Gesture: No hand', false);
     laser.style.display = 'none';
-    hideGestureRing();
     return;
   }
 
   const lm = results.multiHandLandmarks[0];
-  drawConnectors(gestureCtx, lm, HAND_CONNECTIONS, { color: 'rgba(90,209,230,0.55)', lineWidth: 1.5 });
-  drawLandmarks(gestureCtx, lm, { color: 'rgba(90,209,230,0.95)', lineWidth: 1, radius: 3 });
+  drawConnectors(gestureCtx, lm, HAND_CONNECTIONS, { color: 'rgba(0,229,255,0.5)', lineWidth: 1.5 });
+  drawLandmarks(gestureCtx, lm, { color: 'rgba(0,229,255,0.9)', lineWidth: 1, radius: 3 });
 
   const dx = lm[4].x - lm[8].x, dy = lm[4].y - lm[8].y;
   const pinchDist = Math.sqrt(dx*dx + dy*dy);
@@ -1924,7 +1410,6 @@ function onHandResults(results) {
     addCornerLog('gesture', gesture);
   }
   handleGestureAction(gesture, lm, pinchDelta);
-  updateGestureRing(gesture);
 }
 
 function detectGesture(lm) {
@@ -1949,7 +1434,6 @@ function handleGestureAction(gesture, lm, pinchDelta = null) {
 
   // Laser (fist)
   if (gesture === 'fist' && state.isCameraOn) {
-    if (!state.isLaserOn) showGestureCue('laser');   // fire once on off→on edge
     state.isLaserOn = true;
     const screenX = (1 - indexTip.x) * window.innerWidth;
     const screenY = indexTip.y * window.innerHeight;
@@ -2006,7 +1490,6 @@ function handleGestureAction(gesture, lm, pinchDelta = null) {
 function triggerGesture(type) {
   if (!state.gestureReady) return;
   state.gestureReady = false; state.lastGesture = type;
-  showGestureCue(type);                         // big centered confirmation
   clearTimeout(state.gestureTimer);
   state.gestureTimer = setTimeout(() => { state.gestureReady = true; state.lastGesture = ''; }, GESTURE_COOLDOWN);
 
@@ -2038,15 +1521,10 @@ document.addEventListener('keydown', (e) => {
     case 'ArrowRight': case ' ': e.preventDefault(); goNext(); break;
     case 'ArrowLeft':  e.preventDefault(); goPrev(); break;
     case 'f': case 'F': document.documentElement.requestFullscreen?.(); break;
-    case 'Escape':
-      if (state.isStripOpen) closeStrip();
-      else if (state.isPaused) resumePresentation();
-      break;
+    case 'Escape': if (state.isPaused) resumePresentation(); break;
     case 'p': case 'P': togglePause(); break;
     case '+': case '=': zoomIn(); break;
     case '-': zoomOut(); break;
-    case 'g': case 'G': toggleStrip(); break;
-    case 't': case 'T': resetTimer(); break;
     case '?': toggleHelp(); break;
   }
 });
@@ -2085,10 +1563,9 @@ btnHelp.addEventListener('click', toggleHelp);
 btnPrev.addEventListener('click', goPrev);
 btnNext.addEventListener('click', goNext);
 btnConsole.addEventListener('click', togglePanel);
-$('btn-strip').addEventListener('click', toggleStrip);
-$('timer-reset').addEventListener('click', e => { e.stopPropagation(); resetTimer(); });
 if (assistClose) assistClose.addEventListener('click', closePanel);
 if (btnSkip) btnSkip.addEventListener('click', loadDemo);
+if (btnGuideClose) btnGuideClose.addEventListener('click', () => { if (gestureGuide) gestureGuide.style.display = 'none'; });
 
 // Upload zone
 uploadZone.addEventListener('click', () => fileInput.click());
@@ -2112,7 +1589,6 @@ document.addEventListener('click', e => {
 });
 
 // ─── INIT ───
-renderIcons();
 setTimeout(resetUITimer, 500);
 btnCamera.classList.add('active');
 if (navigator.mediaDevices && state.isCameraOn) {
@@ -2122,6 +1598,7 @@ if (navigator.mediaDevices && state.isCameraOn) {
 // Insert corner log container
 const cornerLogEl = document.createElement('div');
 cornerLogEl.id = 'corner-log';
+cornerLogEl.innerHTML = '<div style="font-weight:700;margin-bottom:6px;color:var(--accent);">Activity Log</div>';
 document.body.appendChild(cornerLogEl);
 renderCornerLog();
 </script>
